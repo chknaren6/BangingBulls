@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1027840785835",
+    "project_id": "bangingbulls-0",
+    "storage_bucket": "bangingbulls-0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1027840785835:android:acbca3323dc14f661ce6ee",
+        "android_client_info": {
+          "package_name": "com.nc.bangingbulls"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1027840785835-ld9lsgh4ikcv4tl96f6equ5o4vokj02d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOarty280wm1tufzpxuuRK_HpfB8UMjvs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1027840785835-ld9lsgh4ikcv4tl96f6equ5o4vokj02d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
