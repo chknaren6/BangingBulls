@@ -6,8 +6,12 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.composable
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.nc.bangingbulls.Authentication.AuthScreen
 import com.nc.bangingbulls.Authentication.AuthViewModel
+import com.nc.bangingbulls.Authentication.AuthViewModelFactory
+import com.nc.bangingbulls.Authentication.UsernameInputScreen
 import com.nc.bangingbulls.Home.HomeScreen
 import com.nc.bangingbulls.Splash.SplashScreen
 
@@ -15,7 +19,12 @@ import com.nc.bangingbulls.Splash.SplashScreen
 fun Navi(navController: NavHostController) {
     LocalContext.current
 
-    val authViewModel: AuthViewModel = viewModel()
+    val factory = AuthViewModelFactory(
+        FirebaseFirestore.getInstance(),
+        FirebaseAuth.getInstance()
+    )
+    val authViewModel: AuthViewModel = viewModel(factory = factory)
+
     NavHost(navController = navController, startDestination = "SplashScreen") {
         composable("SplashScreen") {
             SplashScreen(navController)
@@ -25,6 +34,9 @@ fun Navi(navController: NavHostController) {
         }
         composable("HomeScreen") {
             HomeScreen(navController,authViewModel)
+        }
+        composable("UserNameInputScreen") {
+            UsernameInputScreen(navController,authViewModel)
         }
     }
 }

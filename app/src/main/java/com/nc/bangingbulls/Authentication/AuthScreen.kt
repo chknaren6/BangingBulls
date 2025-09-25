@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.nc.bangingbulls.Authentication.GoogleSignInUtils
 
 @SuppressLint("CoroutineCreationDuringComposition")
@@ -44,18 +45,27 @@ import com.nc.bangingbulls.Authentication.GoogleSignInUtils
 fun AuthScreen(navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val launcher =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { /* you can leave it empty */ }
-
-
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { /* you can leave it empty */ }
 
     DisposableEffect(Unit) {
         val auth = FirebaseAuth.getInstance()
-        val listener = FirebaseAuth.AuthStateListener{ firebaseAuth->
-            if(firebaseAuth.currentUser !=null){
-                navController.navigate("HomeScreen"){
-                    popUpTo(navController.graph.startDestinationId){inclusive=true}
-                }
+        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            val user = firebaseAuth.currentUser
+            if (user != null) {
+                val uid = user.uid
+                FirebaseFirestore.getInstance().collection("users").document(uid)
+                    .get()
+                    .addOnSuccessListener { document ->
+                        if (document.exists()) {
+                            navController.navigate("HomeScreen") {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate("UsernameInputScreen") {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                            }
+                        }
+                    }
             }
         }
         auth.addAuthStateListener(listener)
@@ -64,7 +74,6 @@ fun AuthScreen(navController: NavController) {
         }
     }
     Box(modifier = Modifier.fillMaxSize()) {
-        // Bg image
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Card(
                 modifier = Modifier

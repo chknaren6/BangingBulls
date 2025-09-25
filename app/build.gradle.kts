@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.compose.runtime)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.database)
+    implementation(libs.androidx.compose.animation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -70,5 +71,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation (platform("com.google.firebase:firebase-bom:32.7.0"))
-
+    implementation("com.google.firebase:firebase-firestore")
 }

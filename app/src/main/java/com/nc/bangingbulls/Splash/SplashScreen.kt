@@ -2,9 +2,6 @@ package com.nc.bangingbulls.Splash
 
 import android.util.Log
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,30 +21,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.nc.bangingbulls.Authentication.FastCircularProgressIndicator
 
 @Composable
 fun SplashScreen(navController: NavController) {
 
     val rotation = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
+    rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        scope.launch {
-            rotation.animateTo(
-                targetValue = 360f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(800, easing = LinearEasing)
-                )
-            )
-        }
-
-        delay(1000)
         val auth = FirebaseAuth.getInstance()
         val isUserLoggedIn = auth.currentUser != null
-
-
         Log.d("SplashScreen", "User logged in: $isUserLoggedIn")
 
         if (isUserLoggedIn) {
@@ -61,14 +45,13 @@ fun SplashScreen(navController: NavController) {
         }
     }
 
-    val progress = remember { Animatable(0f) }
-
+    val progress = remember { Animatable(0f) }/*
     LaunchedEffect(Unit) {
         progress.animateTo(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 2000)
         )
-    }
+    }*/
 
 
 
@@ -78,6 +61,7 @@ fun SplashScreen(navController: NavController) {
             .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
+        FastCircularProgressIndicator(modifier = Modifier)
         Text(
             text = "⚫",
             fontSize = 64.sp,

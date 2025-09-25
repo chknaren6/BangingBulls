@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1027840785835-3qe6dpnl5jg3i3bplbhd9l2gefftjlgh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nc.bangingbulls",
+            "certificate_hash": "e4e244c395bb979e405eeafd441cbd99554e5245"
+          }
+        },
+        {
           "client_id": "1027840785835-ld9lsgh4ikcv4tl96f6equ5o4vokj02d.apps.googleusercontent.com",
           "client_type": 3
         }

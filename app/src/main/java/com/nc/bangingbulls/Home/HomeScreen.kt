@@ -10,11 +10,11 @@ import androidx.navigation.NavController
 import com.nc.bangingbulls.Authentication.AuthViewModel
 
 @Composable
-fun HomeScreen( navController: NavController,AuthViewModel: AuthViewModel) {
+fun HomeScreen( navController: NavController,authViewModel: AuthViewModel) {
 
     Column(Modifier.fillMaxSize()) {
         Text("HomeScreen")
-        Button(onClick = { AuthViewModel.signOut()
+        Button(onClick = { authViewModel.signOut()
             navController.navigate("AuthScreen")}) {
          Text("SignOut")
         }
