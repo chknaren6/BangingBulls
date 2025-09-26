@@ -13,6 +13,7 @@ import com.nc.bangingbulls.Authentication.AuthViewModel
 import com.nc.bangingbulls.Authentication.AuthViewModelFactory
 import com.nc.bangingbulls.Authentication.UsernameInputScreen
 import com.nc.bangingbulls.Home.HomeScreen
+import com.nc.bangingbulls.Home.UserViewModel
 import com.nc.bangingbulls.Splash.SplashScreen
 
 @Composable
@@ -24,7 +25,7 @@ fun Navi(navController: NavHostController) {
         FirebaseAuth.getInstance()
     )
     val authViewModel: AuthViewModel = viewModel(factory = factory)
-
+    val userViewModel: UserViewModel = viewModel()
     NavHost(navController = navController, startDestination = "SplashScreen") {
         composable("SplashScreen") {
             SplashScreen(navController)
@@ -33,7 +34,7 @@ fun Navi(navController: NavHostController) {
             AuthScreen(navController)
         }
         composable("HomeScreen") {
-            HomeScreen(navController,authViewModel)
+            HomeScreen(navController,authViewModel, userViewModel)
         }
         composable("UserNameInputScreen") {
             UsernameInputScreen(navController,authViewModel)
