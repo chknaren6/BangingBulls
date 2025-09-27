@@ -1,5 +1,6 @@
 package com.nc.bangingbulls.Home
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -48,8 +49,9 @@ fun HomeScreenContent(
     navControllerHome: NavController,
     stocksViewModel: StocksViewModel
 ) {
-    val coins by remember { derivedStateOf { userViewModel.coins } }
-    val animatedCoins by animateIntAsState(targetValue = coins, animationSpec = tween(600))
+    val coins = (userViewModel.coins as? Long) ?: (userViewModel.coins as? Int)?.toLong() ?: 0L
+
+    val animatedCoins by animateFloatAsState(targetValue = coins.toFloat(), animationSpec = tween(600))
 
     val holdings by remember { derivedStateOf { userViewModel.holdings } }
     val stocks by remember { derivedStateOf { stocksViewModel.stocks.value } }

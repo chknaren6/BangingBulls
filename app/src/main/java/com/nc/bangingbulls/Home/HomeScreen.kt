@@ -34,7 +34,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.nc.bangingbulls.Authentication.AuthViewModel
+import com.nc.bangingbulls.Home.Game.CoinFlipGameScreen
+import com.nc.bangingbulls.Home.Game.CrashGameScreen
+import com.nc.bangingbulls.Home.Game.DiceGameScreen
 import com.nc.bangingbulls.Home.Game.GameScreen
+import com.nc.bangingbulls.Home.Game.LimboGameScreen
 import com.nc.bangingbulls.Home.Stocks.AdminStockScreen
 import com.nc.bangingbulls.Home.Stocks.StockDetailScreen
 import com.nc.bangingbulls.Home.Stocks.StocksScreen
@@ -147,7 +151,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, userV
                     StocksScreen(navControllerHome, stocksViewModel)
                 }
                 composable(BottomNavItem.Game.route) {
-                    GameScreen(userViewModel)
+                    GameScreen(navControllerHome,userViewModel)
                 }
 
                     composable(
@@ -175,6 +179,11 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, userV
                     composable("Settings"){
                         Settings(navControllerHome)
                     }
+
+                composable("crashGame") { CrashGameScreen( userViewModel) }
+                composable("diceGame") { DiceGameScreen(navControllerHome, userViewModel) }
+                composable("limboGame") { LimboGameScreen(navControllerHome, userViewModel) }
+                composable("coinFlipGame") { CoinFlipGameScreen(navControllerHome, userViewModel) }
 
 
                 }
