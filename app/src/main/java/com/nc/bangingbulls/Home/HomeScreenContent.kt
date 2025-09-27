@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -36,12 +37,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.nc.bangingbulls.Authentication.AuthViewModel
-
+import com.nc.bangingbulls.Home.Stocks.PortfolioItem
+import com.nc.bangingbulls.stocks.StocksViewModel
 
 @Composable
-fun HomeScreenContent(userViewModel: UserViewModel, authViewModel: AuthViewModel,navController: NavController) {
-    val coins by remember{ derivedStateOf { userViewModel.coins } }
+fun HomeScreenContent(
+    userViewModel: UserViewModel,
+    authViewModel: AuthViewModel,
+    navController: NavController,
+    stocksViewModel: StocksViewModel
+) {
+    val coins by remember { derivedStateOf { userViewModel.coins } }
     val animatedCoins by animateIntAsState(targetValue = coins, animationSpec = tween(600))
+
+    val holdings by remember { derivedStateOf { userViewModel.holdings } }
+    val stocks by remember { derivedStateOf { stocksViewModel.stocks.value } }
+    val leaderboard by remember { derivedStateOf { userViewModel.leaderboard } }
+
+    val portfolio = holdings.mapNotNull { holding ->
+        val stock = stocks.find { it.id == holding.stockId } ?: return@mapNotNull null
+        PortfolioItem(stock.name, stock.symbol, holding.qty, stock.price, holding.avgPrice)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -54,16 +71,31 @@ fun HomeScreenContent(userViewModel: UserViewModel, authViewModel: AuthViewModel
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Welcome, ${userViewModel.username}!", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-
             Text("💰 $animatedCoins", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-
-            Button(onClick = {authViewModel.signOut()
-            navController.navigate("AuthScreen"){
-                popUpTo("HomeScreen"){inclusive = true}
-            } }) {
+            Button(onClick = {
+                authViewModel.signOut()
+                navController.navigate("AuthScreen") { popUpTo("HomeScreen") { inclusive = true } }
+            }) {
                 Text("Sign Out")
             }
+        }
 
+        Spacer(Modifier.height(24.dp))
+
+        // Leaderboard
+        Text("Leaderboard", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        LazyColumn {
+            items(leaderboard) { user ->
+                Card(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
+                    Row(
+                        Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(user.username)
+                        Text("${user.totalCoins}")
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(24.dp))
@@ -75,11 +107,9 @@ fun HomeScreenContent(userViewModel: UserViewModel, authViewModel: AuthViewModel
                 .align(Alignment.CenterHorizontally)
         ) {
             if (userViewModel.profileUrl != null) {
-               /* Image(
-                    painter = rememberAsyncImagePainter(userViewModel.profileImageUri),
-                    contentDescription = "Profile",
-                    modifier = Modifier.fillMaxSize().clip(CircleShape)
-                )*/
+                // Image(painter = rememberAsyncImagePainter(userViewModel.profileUrl),
+                //       contentDescription = "Profile",
+                //       modifier = Modifier.fillMaxSize().clip(CircleShape))
             } else {
                 Icon(Icons.Default.Person, contentDescription = "Default Profile", modifier = Modifier.fillMaxSize())
             }
@@ -89,20 +119,23 @@ fun HomeScreenContent(userViewModel: UserViewModel, authViewModel: AuthViewModel
 
         Text("Popular Stocks", fontSize = 20.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(8.dp))
-        LazyRow {
-            items(listOf("PornHub", "Brazzers", "XNNX", "Xvideos")) { stock ->
-                Card(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .width(150.dp)
-                        .height(100.dp),
-                    elevation = CardDefaults.cardElevation(6.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text(stock, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
+        LazyRow(modifier = Modifier.fillMaxWidth()) {
+            items(stocks) { stock ->
+                val prevPrice = stock.priceHistory.lastOrNull()?.price ?: stock.price
+                Text(
+                    "${stock.symbol} ↑${(stock.price - prevPrice).format(2)}",
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+        }
+        if(userViewModel.isAdmin){
+            Button(onClick = { navController.navigate("AdminStockScreen") }) {
+                Text("Create Stock")
             }
         }
     }
+
 }
+
+
+fun Double.format(digits: Int) = "%.${digits}f".format(this)

@@ -1,26 +1,7 @@
 package com.nc.bangingbulls.Home
 
-import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -28,21 +9,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.google.firebase.firestore.FirebaseFirestore
 import com.nc.bangingbulls.Authentication.AuthViewModel
+import com.nc.bangingbulls.Home.Stocks.AdminStockScreen
+import com.nc.bangingbulls.Home.Stocks.StockDetailScreen
+import com.nc.bangingbulls.Home.Stocks.StocksScreen
+import com.nc.bangingbulls.stocks.StocksViewModel
 
 @Composable
 fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, userViewModel: UserViewModel) {
@@ -52,10 +32,20 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, userV
         BottomNavItem.Game
     )
     val navControllerHome = rememberNavController()
+    val stocksViewModel = StocksViewModel()
+
 
     LaunchedEffect(Unit) {
         userViewModel.loadUserData()
     }
+    LaunchedEffect(Unit) {
+        userViewModel.loadHoldings()
+    }
+    LaunchedEffect(Unit) {
+        userViewModel.loadLeaderboard()
+    }
+
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -81,16 +71,60 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, userV
             startDestination = BottomNavItem.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            // Home tab
             composable(BottomNavItem.Home.route) {
-                HomeScreenContent(userViewModel,authViewModel,navController)
+                HomeScreenContent(userViewModel, authViewModel, navControllerHome, stocksViewModel)
             }
+
+
+            // Stocks tab (list view)
             composable(BottomNavItem.Stocks.route) {
-                StocksScreen(userViewModel)
+                StocksScreen(navControllerHome, stocksViewModel)
             }
+
+            // Game tab
             composable(BottomNavItem.Game.route) {
                 GameScreen(userViewModel)
             }
+
+            // Stock detail screen (nested navigation from Stocks tab)
+            composable(
+                route = "stock/{stockId}",
+                arguments = listOf(navArgument("stockId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val stockId = backStackEntry.arguments?.getString("stockId") ?: ""
+                StockDetailScreen(
+                    stockId = stockId,
+                    navController = navControllerHome,
+                    stocksViewModel = stocksViewModel
+                )
+            }
+
+            composable("AdminStockScreen"){
+                AdminStockScreen(stocksViewModel,navControllerHome)
+            }
+
+
         }
     }
 }
+
+
+
+fun generateHistory(startPrice: Double, days: Int): List<Map<String, Any>> {
+    val history = mutableListOf<Map<String, Any>>()
+    var currentPrice = startPrice
+    val now = System.currentTimeMillis() / 1000  // Unix timestamp (sec)
+
+    for (i in days downTo 1) {
+        currentPrice += (-3..3).random() * 1.5  // random small change
+        val timestamp = now - (i * 86400)       // subtract i days
+        history.add(mapOf("time" to timestamp, "price" to currentPrice))
+    }
+    return history
+}
+
+// Usage:
+
+
 

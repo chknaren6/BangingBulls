@@ -48,7 +48,8 @@ class AuthViewModel(
             lifeTimeEarnings = 0,
             lastRewardTimestamp = System.currentTimeMillis(),
             createdAt = System.currentTimeMillis(),
-            profileStatus = "active"
+            profileStatus = "active",
+            isAdmin = false
         )
 
         firestore.collection("users").document(uid).set(user).addOnSuccessListener {

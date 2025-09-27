@@ -9,5 +9,6 @@ data class User(
     val lifeTimeEarnings: Int = 0,
     val lastRewardTimestamp: Long = 0L,
     val createdAt: Long = System.currentTimeMillis(),
-    val profileStatus: String = "active"
+    val profileStatus: String = "active",
+    val isAdmin: Boolean = false,
 )
