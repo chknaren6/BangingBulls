@@ -45,6 +45,7 @@ fun HomeScreenContent(
     userViewModel: UserViewModel,
     authViewModel: AuthViewModel,
     navController: NavController,
+    navControllerHome: NavController,
     stocksViewModel: StocksViewModel
 ) {
     val coins by remember { derivedStateOf { userViewModel.coins } }
@@ -129,7 +130,7 @@ fun HomeScreenContent(
             }
         }
         if(userViewModel.isAdmin){
-            Button(onClick = { navController.navigate("AdminStockScreen") }) {
+            Button(onClick = { navControllerHome.navigate("AdminStockScreen") }) {
                 Text("Create Stock")
             }
         }

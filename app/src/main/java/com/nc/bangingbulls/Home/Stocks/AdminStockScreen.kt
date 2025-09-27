@@ -47,7 +47,7 @@ fun AdminStockScreen(
             )
 
             stocksViewModel.addStock(stock)
-            navController.navigate("HomeScreen") {
+            navController.navigate("home") {
                 popUpTo("AdminStockScreen") { inclusive = true }
                 launchSingleTop = true
             }

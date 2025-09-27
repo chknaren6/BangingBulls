@@ -1,4 +1,4 @@
-package com.nc.bangingbulls.Home
+package com.nc.bangingbulls.Home.Game
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nc.bangingbulls.Home.UserViewModel
 
 @Composable
 fun GameScreen(userViewModel: UserViewModel) {

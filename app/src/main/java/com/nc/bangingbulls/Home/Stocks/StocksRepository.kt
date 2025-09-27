@@ -5,7 +5,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.nc.bangingbulls.Home.Stocks.Comment
+import com.nc.bangingbulls.Home.Stocks.Comments.Comment
 import com.nc.bangingbulls.Home.Stocks.Stock
 import com.nc.bangingbulls.Home.Stocks.toStock
 import kotlinx.coroutines.channels.awaitClose
@@ -78,8 +78,8 @@ class StocksRepository(
         val comments = stocksCol.document(stockId).collection("comments")
         val doc = comments.document()
         val payload = mapOf(
-            "authorUid" to comment.authorUid,
-            "authorName" to comment.authorName,
+            "authorUid" to comment.userId,
+            "authorName" to comment.username,
             "text" to comment.text,
             "ts" to comment.ts
         )

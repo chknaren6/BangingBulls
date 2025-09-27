@@ -1,7 +1,6 @@
 package com.nc.bangingbulls.Home
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -17,8 +16,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.google.firebase.firestore.FirebaseFirestore
 import com.nc.bangingbulls.Authentication.AuthViewModel
+import com.nc.bangingbulls.Home.Game.GameScreen
 import com.nc.bangingbulls.Home.Stocks.AdminStockScreen
 import com.nc.bangingbulls.Home.Stocks.StockDetailScreen
 import com.nc.bangingbulls.Home.Stocks.StocksScreen
@@ -73,7 +72,7 @@ fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, userV
         ) {
             // Home tab
             composable(BottomNavItem.Home.route) {
-                HomeScreenContent(userViewModel, authViewModel, navControllerHome, stocksViewModel)
+                HomeScreenContent(userViewModel, authViewModel, navController,navControllerHome, stocksViewModel)
             }
 
 
@@ -124,7 +123,6 @@ fun generateHistory(startPrice: Double, days: Int): List<Map<String, Any>> {
     return history
 }
 
-// Usage:
 
 
 

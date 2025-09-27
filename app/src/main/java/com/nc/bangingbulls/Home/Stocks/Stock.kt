@@ -23,14 +23,6 @@ data class PricePoint(
     val price: Double = 0.0
 )
 
-data class Comment(
-    val id: String = "",
-    val authorUid: String = "",
-    val authorName: String = "",
-    val text: String = "",
-    val ts: Long = 0L,
-    val type: String? = null
-)
 
 data class Holding(
     val stockId: String = "",

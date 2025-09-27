@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.nc.bangingbulls.Home.Stocks.Comments.Comment
+import com.nc.bangingbulls.Home.Stocks.Comments.CommentInput
+import com.nc.bangingbulls.Home.Stocks.Comments.CommentsList
 import com.nc.bangingbulls.Home.UserViewModel
 import com.nc.bangingbulls.stocks.StocksViewModel
 import kotlinx.coroutines.channels.awaitClose
@@ -42,6 +47,22 @@ fun StockDetailScreen(
     var timeframe by remember { mutableStateOf("today") } // "today" or "lifetime"
     var qtyText by remember { mutableStateOf("1") }
     val stock = stockState ?: return Column { Text("Loading...") }
+
+    val comments by stocksViewModel.comments.collectAsState() // Flow/LiveData
+    var newComment by remember { mutableStateOf("") }
+
+    var username by remember { mutableStateOf("Anonymous") }
+
+    LaunchedEffect(Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .get()
+            .addOnSuccessListener { doc ->
+                username = doc.getString("username") ?: "Anonymous"
+            }
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -110,8 +131,8 @@ fun StockDetailScreen(
                         val list = snap?.documents?.map {
                             Comment(
                                 id = it.id,
-                                authorUid = it.getString("authorUid") ?: "",
-                                authorName = it.getString("authorName") ?: "",
+                                 userId = it.getString("authorUid") ?: "",
+                                username = it.getString("authorName") ?: "",
                                 text = it.getString("text") ?: "",
                                 ts = (it.getLong("ts") ?: 0L)
                             )
@@ -122,16 +143,41 @@ fun StockDetailScreen(
             }
         }
         val comments by commentsFlow.collectAsState(initial = emptyList())
+        var replyToComment by remember { mutableStateOf<Comment?>(null) }
+
+
+
 
         Text("Comments", fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        LazyColumn(modifier = Modifier.height(200.dp)) {
-            items(comments) { c ->
-                Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                    Text(c.authorName, fontWeight = FontWeight.Bold)
-                    Text(c.text)
-                }
-            }
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            CommentInput(
+                text = newComment,
+                onTextChange = { newComment = it },
+                onSend = {
+                    if (newComment.isNotBlank()) {
+                        stocksViewModel.addComment(
+                            stockId = stockId,
+                            text = newComment,
+                            replyToId = replyToComment?.id,
+                            username = username
+                        )
+                        newComment = ""
+                        replyToComment = null
+                    }
+                },
+                replyingTo = replyToComment
+            )
+
+            Spacer(Modifier.height(8.dp))
+            CommentsList(
+                comments = comments,
+                onLike = { stocksViewModel.likeComment(stockId, it.id) },
+                onDislike = { stocksViewModel.dislikeComment(stockId, it.id) },
+                onReply = { stocksViewModel.prepareReply(it) }
+            )
+
         }
     }
 }
