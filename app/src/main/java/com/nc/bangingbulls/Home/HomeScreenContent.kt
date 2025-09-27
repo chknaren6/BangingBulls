@@ -73,12 +73,7 @@ fun HomeScreenContent(
         ) {
             Text("Welcome, ${userViewModel.username}!", fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text("💰 $animatedCoins", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            Button(onClick = {
-                authViewModel.signOut()
-                navController.navigate("AuthScreen") { popUpTo("HomeScreen") { inclusive = true } }
-            }) {
-                Text("Sign Out")
-            }
+
         }
 
         Spacer(Modifier.height(24.dp))
