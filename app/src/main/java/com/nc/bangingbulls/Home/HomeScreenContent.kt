@@ -54,7 +54,6 @@ fun HomeScreenContent(
 
     val holdings by remember { derivedStateOf { userViewModel.holdings } }
     val stocks by remember { derivedStateOf { stocksViewModel.stocks.value } }
- //   var leaderboard by remember { derivedStateOf { userViewModel.leaderboard } }
 
     val portfolio = holdings.mapNotNull { holding ->
         val stock = stocks.find { it.id == holding.stockId } ?: return@mapNotNull null
@@ -66,7 +65,6 @@ fun HomeScreenContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Top bar
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -79,27 +77,10 @@ fun HomeScreenContent(
 
         Spacer(Modifier.height(24.dp))
 
-        // Leaderboard
         Text("Leaderboard", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         val leaderboardViewModel = viewModel<LeaderboardViewModel>()
         LeaderboardScreen(leaderboardViewModel)
-       /* LazyColumn {
-            items(leaderboard) { user ->
-                Card(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
-                    Row(
-                        Modifier.padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(user.username)
-                        Text("${user.totalCoins}")
-                    }
-                }
-            }
-        }*/
-
         Spacer(Modifier.height(24.dp))
-
-        // Profile
         Box(
             modifier = Modifier
                 .size(80.dp)

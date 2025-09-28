@@ -9,12 +9,36 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,8 +59,14 @@ import androidx.navigation.navArgument
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.nc.bangingbulls.Authentication.VM.AuthViewModel
-import com.nc.bangingbulls.Home.Game.V.*
-import com.nc.bangingbulls.Home.Stocks.StockFiles.V.*
+import com.nc.bangingbulls.Home.Game.V.CoinFlipGameScreen
+import com.nc.bangingbulls.Home.Game.V.CrashGameScreen
+import com.nc.bangingbulls.Home.Game.V.DiceGameScreen
+import com.nc.bangingbulls.Home.Game.V.GameScreen
+import com.nc.bangingbulls.Home.Game.V.LimboGameScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.V.AdminStockScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.V.StockDetailScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.V.StocksScreen
 import com.nc.bangingbulls.Home.Stocks.StockFiles.VM.StocksViewModel
 import com.nc.bangingbulls.R
 import kotlinx.coroutines.launch
@@ -47,20 +77,16 @@ private val ImmersiveRoutes = setOf("crashGame", "diceGame", "limboGame", "coinF
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun HomeScreen(
-    navController: NavController,
-    authViewModel: AuthViewModel,
-    userViewModel: UserViewModel
+    navController: NavController, authViewModel: AuthViewModel, userViewModel: UserViewModel
 ) {
     val items = listOf(BottomNavItem.Home, BottomNavItem.Stocks, BottomNavItem.Game)
 
-    // One-time loading
     LaunchedEffect(Unit) {
         userViewModel.claimDailyCoins()
         userViewModel.loadUserData()
         userViewModel.loadHoldings()
         userViewModel.loadLeaderboard()
     }
-
 
 
     val navControllerHome = rememberNavController()
@@ -77,18 +103,14 @@ fun HomeScreen(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.setDecorFitsSystemWindows(false)
             } else {
-                @Suppress("DEPRECATION")
-                window.decorView.systemUiVisibility =
-                    android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
-                            android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                            android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                @Suppress("DEPRECATION") window.decorView.systemUiVisibility =
+                    android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             }
         }
     }
 
     ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
+        drawerState = drawerState, drawerContent = {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -97,7 +119,9 @@ fun HomeScreen(
             ) {
                 Text("About", modifier = Modifier.clickable { navControllerHome.navigate("About") })
                 Spacer(Modifier.height(8.dp))
-                Text("Terms & Conditions", modifier = Modifier.clickable { navControllerHome.navigate("TC") })
+                Text(
+                    "Terms & Conditions",
+                    modifier = Modifier.clickable { navControllerHome.navigate("TC") })
                 Spacer(Modifier.height(8.dp))
                 Text("Settings", modifier = Modifier.clickable {
                     scope.launch { drawerState.close() }
@@ -105,58 +129,35 @@ fun HomeScreen(
                 })
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    "Sign Out",
-                    modifier = Modifier.clickable {
+                    "Sign Out", modifier = Modifier.clickable {
                         scope.launch { drawerState.close() }
                         authViewModel.signOut()
                         navController.navigate("AuthScreen") { popUpTo(0) { inclusive = true } }
-                    },
-                    color = MaterialTheme.colorScheme.error
+                    }, color = MaterialTheme.colorScheme.error
                 )
             }
-        }
-    ) {
-        val currentRoute = navControllerHome.currentBackStackEntryAsState().value?.destination?.route
+        }) {
+        val currentRoute =
+            navControllerHome.currentBackStackEntryAsState().value?.destination?.route
         val hideChrome = currentRoute in ImmersiveRoutes
-
-        // System bars behavior for immersive routes
-        /*LaunchedEffect(currentRoute) {
-            activity?.window?.insetsController?.let { controller ->
-                if (hideChrome) {
-                    controller.hide(
-                        android.view.WindowInsets.Type.statusBars() or
-                                android.view.WindowInsets.Type.navigationBars()
-                    )
-                    controller.systemBarsBehavior =
-                        android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                } else {
-
-                }
-            }
-        }*/
-
         if (!hideChrome) {
             Scaffold(
                 topBar = {
-                    TopBarWithImage(
-                        imageRes = R.drawable.gamebg,
-                        onMenu = { scope.launch { drawerState.open() } }
-                    )
-                },
-                bottomBar = {
-                    BottomBarWithImage(
-                        imageRes = R.drawable.bottom,
-                        items = items,
-                        currentRoute = navControllerHome.currentBackStackEntryAsState().value?.destination?.route,
-                        onItemClick = { item ->
-                            navControllerHome.navigate(item.route) {
-                                popUpTo(navControllerHome.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
+                TopBarWithImage(
+                    imageRes = R.drawable.gamebg,
+                    onMenu = { scope.launch { drawerState.open() } })
+            }, bottomBar = {
+                BottomBarWithImage(
+                    imageRes = R.drawable.bottom,
+                    items = items,
+                    currentRoute = navControllerHome.currentBackStackEntryAsState().value?.destination?.route,
+                    onItemClick = { item ->
+                        navControllerHome.navigate(item.route) {
+                            popUpTo(navControllerHome.graph.startDestinationId)
+                            launchSingleTop = true
                         }
-                    )
-                },
-                containerColor = Color.Transparent // ensures Scaffold background does not show
+                    })
+            }, containerColor = Color.Transparent
             ) { padding ->
                 HomeNavHost(
                     navControllerHome = navControllerHome,
@@ -169,7 +170,6 @@ fun HomeScreen(
             }
 
         } else {
-            // Immersive full-screen host (no Scaffold paddings)
             HomeNavHost(
                 navControllerHome = navControllerHome,
                 userViewModel = userViewModel,
@@ -226,7 +226,7 @@ fun HomeNavHost(
             CrashGameScreen(userViewModel) { navControllerHome.popBackStack() }
         }
         immersiveGameRoute("diceGame") {
-            DiceGameScreen(userViewModel, {navControllerHome.popBackStack()})
+            DiceGameScreen(userViewModel, { navControllerHome.popBackStack() })
         }
         immersiveGameRoute("limboGame") {
             LimboGameScreen(navControllerHome, userViewModel)
@@ -239,24 +239,17 @@ fun HomeNavHost(
 
 @OptIn(ExperimentalAnimationApi::class)
 fun NavGraphBuilder.immersiveGameRoute(
-    route: String,
-    content: @Composable () -> Unit
+    route: String, content: @Composable () -> Unit
 ) {
-    composable(
-        route = route,
-        enterTransition = {
-            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(400))
-        },
-        exitTransition = {
-            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(400))
-        },
-        popEnterTransition = {
-            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(400))
-        },
-        popExitTransition = {
-            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(400))
-        }
-    ) {
+    composable(route = route, enterTransition = {
+        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(400))
+    }, exitTransition = {
+        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(400))
+    }, popEnterTransition = {
+        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(400))
+    }, popExitTransition = {
+        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(400))
+    }) {
         Box(Modifier.fillMaxSize()) { content() }
     }
 }
@@ -274,7 +267,6 @@ fun TopBarWithImage(
             .height(56.dp + contentPadding.calculateTopPadding())
             .background(Color.Transparent)
     ) {
-        // Background image
         Image(
             painter = painterResource(imageRes),
             contentDescription = null,
@@ -284,14 +276,12 @@ fun TopBarWithImage(
                 .clip(RectangleShape)
         )
 
-        // Scrim for readability (optional)
         Box(
             Modifier
                 .matchParentSize()
                 .background(Color.Black.copy(alpha = 0.25f))
         )
 
-        // Foreground bar content
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -301,7 +291,6 @@ fun TopBarWithImage(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Title slot (left empty per your design)
             Spacer(Modifier.width(1.dp))
             IconButton(onClick = onMenu) {
                 Icon(
@@ -329,15 +318,12 @@ fun BottomBarWithImage(
             .height(64.dp + contentPadding.calculateBottomPadding())
             .background(Color.Transparent)
     ) {
-        // Background image
         Image(
             painter = painterResource(imageRes),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.matchParentSize()
         )
-
-        // Scrim (optional)
         Box(
             Modifier
                 .matchParentSize()
@@ -360,8 +346,7 @@ fun BottomBarWithImage(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .clickable { onItemClick(item) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
+                        .padding(horizontal = 12.dp, vertical = 6.dp)) {
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,

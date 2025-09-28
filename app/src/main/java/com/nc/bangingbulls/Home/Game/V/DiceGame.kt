@@ -1,38 +1,49 @@
 package com.nc.bangingbulls.Home.Game.V
 
-import android.content.Context
 import android.os.VibrationEffect
 import android.os.Vibrator
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nc.bangingbulls.Home.UserViewModel
@@ -41,13 +52,13 @@ import com.nc.bangingbulls.playSoundFromAssets
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
+
 @Composable
 fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val vibrator = context.getSystemService(Vibrator::class.java)
     val random = Random.Default
-
     var diceNumber by remember { mutableStateOf(1) }
     var bet by remember { mutableStateOf("") }
     var choice by remember { mutableStateOf("") }
@@ -60,8 +71,7 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
     val totalCoins = userViewModel.coins
     val betValue = bet.toLongOrNull() ?: 0L
     val canGamble = betValue in 1..totalCoins && choice.isNotEmpty()
-    val multiplier = 2 // Win multiplier
-
+    val multiplier = 2
     val scopeFloating = rememberCoroutineScope()
 
     Box(
@@ -69,9 +79,8 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
             .fillMaxSize()
             .background(Color(0xFF121931))
     ) {
-        // Background image placeholder
         Image(
-            painter = painterResource(id = R.drawable.dicebg,),
+            painter = painterResource(id = R.drawable.dicebg),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -93,17 +102,13 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
                     text = "\u2190 Back",
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { onBack() }
-                )
+                    modifier = Modifier.clickable { onBack() })
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = "Coins: 💰$totalCoins",
-                    color = Color.Yellow,
-                    fontWeight = FontWeight.Bold
+                    text = "Coins: 💰$totalCoins", color = Color.Yellow, fontWeight = FontWeight.Bold
                 )
             }
 
-            // Bet input & High/Low buttons
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0E1320)),
@@ -133,19 +138,19 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
-                            onClick = { choice = "High" },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (choice == "High") Color(0xFF3B68F7) else Color(0xFF223058)
-                            ),
-                            modifier = Modifier.weight(1f)
+                            onClick = { choice = "High" }, colors = ButtonDefaults.buttonColors(
+                                containerColor = if (choice == "High") Color(0xFF3B68F7) else Color(
+                                    0xFF223058
+                                )
+                            ), modifier = Modifier.weight(1f)
                         ) { Text("High (4–6)") }
 
                         Button(
-                            onClick = { choice = "Low" },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (choice == "Low") Color(0xFF3B68F7) else Color(0xFF223058)
-                            ),
-                            modifier = Modifier.weight(1f)
+                            onClick = { choice = "Low" }, colors = ButtonDefaults.buttonColors(
+                                containerColor = if (choice == "Low") Color(0xFF3B68F7) else Color(
+                                    0xFF223058
+                                )
+                            ), modifier = Modifier.weight(1f)
                         ) { Text("Low (1–3)") }
                     }
 
@@ -159,11 +164,10 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
                 }
             }
 
-            // Dice display
             Box(contentAlignment = Alignment.Center, modifier = Modifier.height(180.dp)) {
                 Image(
                     painter = painterResource(
-                        id = when(diceNumber) {
+                        id = when (diceNumber) {
                             1 -> R.drawable.dice_1
                             2 -> R.drawable.dice_2
                             3 -> R.drawable.dice_3
@@ -171,12 +175,9 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
                             5 -> R.drawable.dice_5
                             else -> R.drawable.dice_6
                         }
-                    ),
-                    contentDescription = "Dice Face",
-                    modifier = Modifier.size(150.dp)
+                    ), contentDescription = "Dice Face", modifier = Modifier.size(150.dp)
                 )
 
-                // Floating result text
                 floatingText?.let { (text, color) ->
                     Text(
                         text = text,
@@ -188,10 +189,9 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
                 }
             }
 
-            // Result text from UserViewModel
             if (resultText.isNotEmpty()) {
                 Text(
-                    text = resultText, // already a single string
+                    text = resultText,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White
@@ -199,15 +199,15 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
             }
         }
 
-        // Confirm Dialog
         if (showConfirm) {
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x88000000))
-                    .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
-            ) {
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }) {}) {
                 Surface(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -233,7 +233,12 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("Confirm bet", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = Color(0xFF0E1320))
+                            Text(
+                                "Confirm bet",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 18.sp,
+                                color = Color(0xFF0E1320)
+                            )
                             Spacer(Modifier.height(8.dp))
                             Text("Play with bet: $bet on $choice?", color = Color(0xFF516079))
                             Spacer(Modifier.height(16.dp))
@@ -258,33 +263,46 @@ fun DiceGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
                                             delay(150)
                                         }
 
-                                        val win = (choice == "High" && diceNumber in 4..6) || (choice == "Low" && diceNumber in 1..3)
+                                        val win =
+                                            (choice == "High" && diceNumber in 4..6) || (choice == "Low" && diceNumber in 1..3)
                                         val net = if (win) betValue * multiplier else -betValue
 
                                         if (win) {
                                             userViewModel.addCoins(net)
                                             playSoundFromAssets(context, "coin.mp3")
-                                            vibrator?.vibrate(VibrationEffect.createOneShot(200, 100))
+                                            vibrator?.vibrate(
+                                                VibrationEffect.createOneShot(
+                                                    200,
+                                                    100
+                                                )
+                                            )
                                         } else {
                                             playSoundFromAssets(context, "lose.mp3")
-                                            vibrator?.vibrate(VibrationEffect.createOneShot(150, 50))
+                                            vibrator?.vibrate(
+                                                VibrationEffect.createOneShot(
+                                                    150,
+                                                    50
+                                                )
+                                            )
                                         }
 
-                                        val resultColor = if(win) Color(0xFF4CAF50) else Color(0xFFF44336)
-                                        floatingText = Pair(if(win) "+$net" else "-$betValue", resultColor)
+                                        val resultColor =
+                                            if (win) Color(0xFF4CAF50) else Color(0xFFF44336)
+                                        floatingText =
+                                            Pair(if (win) "+$net" else "-$betValue", resultColor)
 
-                                        // floating animation
                                         scopeFloating.launch {
                                             floatingOffset = 0f
-                                            delay(200) // slight delay before animation
-                                            while(floatingOffset < 100){
+                                            delay(200)
+                                            while (floatingOffset < 100) {
                                                 floatingOffset += 2
                                                 delay(10)
                                             }
-                                            floatingText = null // remove after animation
+                                            floatingText = null
                                         }
 
-                                        resultText = if(win) "You won $net coins!" else "You lost $betValue coins."
+                                        resultText =
+                                            if (win) "You won $net coins!" else "You lost $betValue coins."
                                         rolling = false
                                     }
                                 },

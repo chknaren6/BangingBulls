@@ -5,14 +5,29 @@ import android.os.Vibrator
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,11 +42,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.nc.bangingbulls.R
 import com.nc.bangingbulls.Home.UserViewModel
+import com.nc.bangingbulls.R
 import com.nc.bangingbulls.playSoundFromAssets
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
 @Composable
 fun LimboGameScreen(navController: NavController, userViewModel: UserViewModel) {
     val context = LocalContext.current
@@ -51,43 +67,34 @@ fun LimboGameScreen(navController: NavController, userViewModel: UserViewModel) 
 
     val userCoins = userViewModel.coins
     val animatedCoins by animateFloatAsState(
-        targetValue = userCoins.toFloat(),
-        animationSpec = tween(600),
-        label = ""
+        targetValue = userCoins.toFloat(), animationSpec = tween(600), label = ""
     )
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Background image
         Image(
-            painter = painterResource(id = R.drawable.limbobg), // replace with your image
+            painter = painterResource(id = R.drawable.limbobg),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                /*.background(
+                .fillMaxSize()/*.background(
                     if (winAnimation) Color(0xFF1B5E20)
                     else if (loseAnimation) Color(0xFFB71C1C)
                     else Color(0xFF121931)
-                )*/
-                .padding(16.dp),
+                )*/.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Top bar
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { navController.popBackStack() }
-                ) {
+                    modifier = Modifier.clickable { navController.popBackStack() }) {
                     Text(
                         text = "\u2190",
                         fontSize = 28.sp,
@@ -105,8 +112,6 @@ fun LimboGameScreen(navController: NavController, userViewModel: UserViewModel) 
                     fontSize = 18.sp
                 )
             }
-
-            // Bet input
             OutlinedTextField(
                 value = bet,
                 onValueChange = { bet = it.filter { ch -> ch.isDigit() } },
@@ -127,7 +132,6 @@ fun LimboGameScreen(navController: NavController, userViewModel: UserViewModel) 
                 )
             )
 
-            // Multiplier slider
             Text("Pick Multiplier: ${String.format("%.1f", multiplier)}x", color = Color.White)
             Slider(
                 value = multiplier,
@@ -137,9 +141,9 @@ fun LimboGameScreen(navController: NavController, userViewModel: UserViewModel) 
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Play button
             Button(
-                enabled = !rolling && bet.toLongOrNull()?.let { it > 0 && it <= userCoins } == true,
+                enabled = !rolling && bet.toLongOrNull()
+                ?.let { it > 0 && it <= userCoins } == true,
                 onClick = {
                     playScale = 1.2f
                     scope.launch { delay(100); playScale = 1f }
@@ -179,7 +183,6 @@ fun LimboGameScreen(navController: NavController, userViewModel: UserViewModel) 
                             resultText = userViewModel.loseLines.random()
                         }
 
-                        // Animate floating text
                         floatingOffset = 0f
                         scope.launch {
                             repeat(30) {
@@ -200,7 +203,6 @@ fun LimboGameScreen(navController: NavController, userViewModel: UserViewModel) 
                 Text("Play")
             }
 
-            // Floating text for win/loss
             floatingText?.let { (text, color) ->
                 Text(
                     text = text,
@@ -211,7 +213,6 @@ fun LimboGameScreen(navController: NavController, userViewModel: UserViewModel) 
                 )
             }
 
-            // Result text (win/lose lines)
             if (resultText.isNotEmpty()) {
                 Text(
                     resultText,

@@ -161,7 +161,6 @@ class UserViewModel : ViewModel() {
             val lastTs = snap.getLong("lastRewardTimestamp") ?: 0L
             val now = System.currentTimeMillis()
             if (now - lastTs < 24L * 3600_000L) {
-                // already claimed
                 return@runTransaction null
             }
             val coins = (snap.getDouble("coins") ?: snap.getLong("coins")?.toDouble() ?: 0.0).toLong()
@@ -222,7 +221,6 @@ class UserViewModel : ViewModel() {
                 if (net > 0) {
                     updates["lifetimeCoins"] = lifetime + net
                 } else if (!snap.contains("lifetimeCoins")) {
-                    // Ensure field exists even if no win yet
                     updates["lifetimeCoins"] = lifetime
                 }
 

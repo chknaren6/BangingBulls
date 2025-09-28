@@ -10,7 +10,17 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,8 +28,28 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -39,22 +69,21 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nc.bangingbulls.Home.UserViewModel
+import com.nc.bangingbulls.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
-import com.nc.bangingbulls.R
 
 @Composable
-fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
+fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit) {
 
-    val density = androidx.compose.ui.platform.LocalDensity.current
+    LocalDensity.current
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val screenW = configuration.screenWidthDp.dp
     val horizontalPad = (screenW * 0.04f).coerceAtLeast(12.dp)
     val corner = 16.dp
 
-    // State
     val totalCoins = userViewModel.coins
     var playsToday by remember { mutableStateOf(0) }
     var lastResetAt by remember { mutableStateOf(0L) }
@@ -65,10 +94,9 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
     var lastNet by remember { mutableStateOf(0L) }
     var scratching by remember { mutableStateOf(false) }
     var isLoss by remember { mutableStateOf(false) }
-    var confirmPressed by remember { mutableStateOf(false) } // small scale animation on confirm
-    var coinBurst by remember { mutableStateOf(false) } // confetti/coins on win
+    var confirmPressed by remember { mutableStateOf(false) }
+    var coinBurst by remember { mutableStateOf(false) }
 
-    // Observe daily state
     LaunchedEffect(Unit) {
         userViewModel.observeCrashState { p, ts ->
             playsToday = p
@@ -76,7 +104,6 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
         }
     }
 
-    // Countdown
     val now by produceState(initialValue = System.currentTimeMillis()) {
         while (true) {
             value = System.currentTimeMillis()
@@ -86,7 +113,6 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
     val millisLeft = (lastResetAt + 24L * 3600_000L) - now
     val locked = playsToday >= 10 && millisLeft > 0
 
-    // Sounds
     val ctx = LocalContext.current
     val scratchPlayer by remember(ctx) { mutableStateOf(preloadSound(ctx, "scratch.mp3")) }
     val coinPlayer by remember(ctx) { mutableStateOf(preloadSound(ctx, "coin.mp3")) }
@@ -96,27 +122,21 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
 
     val scope = rememberCoroutineScope()
 
-    // Derived
     val coins = userViewModel.coins
     val betValue = bet.toLongOrNull() ?: 0L
     val canGamble = !locked && betValue > 0L && betValue <= coins
 
-    // Animations
     val confirmScale by animateFloatAsState(
         targetValue = if (confirmPressed) 0.96f else 1f,
         animationSpec = tween(120),
         label = "confirmScale"
     )
     val coinOpacity by animateFloatAsState(
-        targetValue = if (coinBurst) 1f else 0f,
-        animationSpec = tween(300),
-        label = "coinOpacity"
+        targetValue = if (coinBurst) 1f else 0f, animationSpec = tween(300), label = "coinOpacity"
     )
 
-    // Root: full-screen, no app scaffold
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         Image(
             painter = painterResource(id = R.drawable.crashbg),
@@ -130,7 +150,6 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                 .verticalScroll(rememberScrollState())
                 .padding(top = 92.dp, start = horizontalPad, end = horizontalPad, bottom = 24.dp)
         ) {
-            // Bet card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(corner),
@@ -166,7 +185,9 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                             onClick = { showConfirm = true },
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (canGamble) Color(0xFF3B68F7) else Color(0xFF2A3558)
+                                containerColor = if (canGamble) Color(0xFF3B68F7) else Color(
+                                    0xFF2A3558
+                                )
                             )
                         ) { Text("Gamble") }
                     }
@@ -176,15 +197,9 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                     }
                 }
             }
-            val quoteAlpha by animateFloatAsState(
-                targetValue = if (showResult && resultQuote != null) 1f else 0f,
-                animationSpec = tween(220),
-                label = "quoteAlpha"
-            )
 
             Spacer(Modifier.height(18.dp))
 
-            // Scratch area
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -209,24 +224,32 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                             val mm = (secs % 3600) / 60
                             val ss = secs % 60
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Daily limit reached", color = Color(0xFFE0E6F3), fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Daily limit reached",
+                                    color = Color(0xFFE0E6F3),
+                                    fontWeight = FontWeight.SemiBold
+                                )
                                 Spacer(Modifier.height(6.dp))
                                 Surface(
-                                    color = Color(0xFF0E1320),
-                                    shape = RoundedCornerShape(24.dp)
+                                    color = Color(0xFF0E1320), shape = RoundedCornerShape(24.dp)
                                 ) {
                                     Text(
                                         "Resets in %02d:%02d:%02d".format(hh, mm, ss),
                                         color = Color(0xFF9EB1D6),
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.padding(
+                                            horizontal = 12.dp,
+                                            vertical = 6.dp
+                                        ),
                                         fontSize = 13.sp
                                     )
                                 }
                             }
                         }
+
                         scratching -> {
                             Text("Scratching...", color = Color(0xFFE0E6F3), fontSize = 16.sp)
                         }
+
                         showResult -> {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -236,36 +259,39 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                             ) {
                                 Text(
                                     "${"%.2f".format(currentMultiplier)}x",
-                                    color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold
+                                    color = Color.White,
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Text(
                                     "Net: ${if (lastNet >= 0) "+$lastNet" else "$lastNet"}",
-                                    color = if (lastNet >= 0) Color(0xFFB6F5C5) else Color(0xFFFFB3B3),
+                                    color = if (lastNet >= 0) Color(0xFFB6F5C5) else Color(
+                                        0xFFFFB3B3
+                                    ),
                                     fontSize = 16.sp
                                 )
-                                // Quote line
                                 resultQuote?.let { q ->
                                     Spacer(Modifier.height(10.dp))
                                     Divider(
                                         color = Color.White.copy(alpha = 0.15f),
                                         thickness = 1.dp,
-                                        modifier = Modifier
-                                            .fillMaxWidth(0.66f)
+                                        modifier = Modifier.fillMaxWidth(0.66f)
                                     )
                                     Spacer(Modifier.height(8.dp))
                                 }
                             }
                         }
+
                         else -> {
                             Text(
                                 "Tap Gamble to play\n(plays left: ${10 - playsToday})",
-                                color = Color(0xFFB7C3DB), textAlign = TextAlign.Center
+                                color = Color(0xFFB7C3DB),
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
 
-                    // Coin burst overlay on win
                     if (coinOpacity > 0f) {
                         Text(
                             "＋$lastNet",
@@ -283,14 +309,11 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
             Spacer(Modifier.height(24.dp))
             resultQuote?.let { q ->
                 QuotePanel(
-                    text = q,
-                    positive = lastNet >= 0,
-                    modifier = Modifier.fillMaxWidth()
+                    text = q, positive = lastNet >= 0, modifier = Modifier.fillMaxWidth()
                 )
             }
         }
 
-        // Top bar: back + coins + counter
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -305,17 +328,13 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Back pill
                 Surface(
-                    color = Color(0x11000000),
-                    shape = RoundedCornerShape(24.dp)
+                    color = Color(0x11000000), shape = RoundedCornerShape(24.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .clickable { onBack() }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier
+                        .clickable { onBack() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -326,10 +345,8 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                     }
                 }
 
-                // Coins pill
                 Surface(
-                    color = Color(0xFF0E1320),
-                    shape = RoundedCornerShape(24.dp)
+                    color = Color(0xFF0E1320), shape = RoundedCornerShape(24.dp)
                 ) {
                     Text(
                         "Coins: 💰$totalCoins",
@@ -339,10 +356,8 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                     )
                 }
 
-                // Counter
                 Surface(
-                    color = Color(0x11000000),
-                    shape = RoundedCornerShape(24.dp)
+                    color = Color(0x11000000), shape = RoundedCornerShape(24.dp)
                 ) {
                     Text(
                         "${minOf(playsToday, 10)}/10",
@@ -355,7 +370,6 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
         }
     }
 
-    // Confirm dialog
     if (showConfirm) {
         val newCoinsSnap = userViewModel.coins
         val newBet = bet.toLongOrNull() ?: 0L
@@ -366,10 +380,9 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0x88000000))
-                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
-                    // consume outside clicks (don’t dismiss)
-                }
-        ) {
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }) {}) {
             Surface(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -380,9 +393,8 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                 tonalElevation = 6.dp
             ) {
                 Box {
-                    // Close (X) at top-right
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                        imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -396,7 +408,12 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Confirm bet", fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = Color(0xFF0E1320))
+                        Text(
+                            "Confirm bet",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 18.sp,
+                            color = Color(0xFF0E1320)
+                        )
                         Spacer(Modifier.height(8.dp))
                         Text("Play with bet: $newBet ?", color = Color(0xFF516079))
                         Spacer(Modifier.height(16.dp))
@@ -419,15 +436,14 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                                             currentMultiplier = mult
                                             lastNet = net
                                             showResult = true
-                                            resultQuote = if (net >= 0) userViewModel.winLines.random() else userViewModel.loseLines.random()
+                                            resultQuote =
+                                                if (net >= 0) userViewModel.winLines.random() else userViewModel.loseLines.random()
 
 
                                             if (net > 0) coinBurst = true
 
                                             scope.launch {
                                                 delay(1200)
-                                                // keep quote visible even after card resets; comment out the next line if you want longer persistence
-                                                // resultQuote = null
                                                 showResult = false
                                                 isLoss = false
                                                 scratching = false
@@ -435,11 +451,9 @@ fun CrashGameScreen(userViewModel: UserViewModel, onBack: () -> Unit){
                                                 confirmPressed = false
                                                 bet = ""
                                             }
-                                        }
-                                    )
+                                        })
                                 }
-                            }
-                        ) { Text("Confirm") }
+                            }) { Text("Confirm") }
                     }
                 }
             }
@@ -486,7 +500,8 @@ private suspend fun applyCrashOutcomeAtomic(bet: Long, multiplier: Double): Long
     return try {
         db.runTransaction { tx ->
             val snap = tx.get(ref)
-            val coins = (snap.getDouble("coins") ?: snap.getLong("coins")?.toDouble() ?: 0.0).toLong()
+            val coins =
+                (snap.getDouble("coins") ?: snap.getLong("coins")?.toDouble() ?: 0.0).toLong()
             if (bet <= 0L || coins < bet) throw IllegalStateException("insufficient")
             val win = kotlin.math.floor(bet * multiplier).toLong()
             val newCoins = coins - bet + win
@@ -507,10 +522,18 @@ private suspend fun playOneCrash(
     onImmediateLoss: () -> Unit,
     onResult: (multiplier: Double, net: Long) -> Unit
 ) {
-    if (bet <= 0L) { onResult(1.0, 0L); return }
+    if (bet <= 0L) {
+        onResult(1.0, 0L); return
+    }
 
-    val allowed = try { userViewModel.tryConsumeCrashPlay() } catch (_: Exception) { false }
-    if (!allowed) { onResult(1.0, 0L); return }
+    val allowed = try {
+        userViewModel.tryConsumeCrashPlay()
+    } catch (_: Exception) {
+        false
+    }
+    if (!allowed) {
+        onResult(1.0, 0L); return
+    }
 
     val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
     val uid = auth.currentUser?.uid
@@ -518,7 +541,9 @@ private suspend fun playOneCrash(
     val userDoc = uid?.let { db.collection("users").document(it).get().await() }
     val currentCoins = (userDoc?.getDouble("coins") ?: userDoc?.getLong("coins")?.toDouble()
     ?: userViewModel.coins.toDouble()).toLong()
-    if (bet > currentCoins) { onResult(1.0, 0L); return }
+    if (bet > currentCoins) {
+        onResult(1.0, 0L); return
+    }
 
     onScratch(true)
 
@@ -543,7 +568,11 @@ private fun QuotePanel(text: String, positive: Boolean, modifier: Modifier = Mod
     val bg = if (positive) Color(0xFFE6FFF0) else Color(0xFFFFECEC)
     val stroke = if (positive) Color(0xFF37C077) else Color(0xFFE05757)
     val icon = if (positive) "🟢" else "🔴"
-    val alpha by animateFloatAsState(targetValue = 1f, animationSpec = tween(220), label = "quoteAlpha")
+    val alpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(220),
+        label = "quoteAlpha"
+    )
 
 
     Surface(
@@ -559,14 +588,11 @@ private fun QuotePanel(text: String, positive: Boolean, modifier: Modifier = Mod
             Text(icon, fontSize = 18.sp)
             Spacer(Modifier.width(10.dp))
             Text(
-                text,
-                color = Color(0xFF1F2937),
-                fontSize = 14.sp
+                text, color = Color(0xFF1F2937), fontSize = 14.sp
             )
         }
     }
 }
-
 
 
 private suspend fun tryDeductCoinsAtomic(amount: Long): Boolean {
@@ -578,7 +604,8 @@ private suspend fun tryDeductCoinsAtomic(amount: Long): Boolean {
     return try {
         db.runTransaction { tx ->
             val snap = tx.get(ref)
-            val coins = (snap.getDouble("coins") ?: snap.getLong("coins")?.toDouble() ?: 0.0).toLong()
+            val coins =
+                (snap.getDouble("coins") ?: snap.getLong("coins")?.toDouble() ?: 0.0).toLong()
             if (coins < amount) throw IllegalStateException("insufficient")
             tx.update(ref, "coins", coins - amount)
             null
@@ -590,13 +617,16 @@ private suspend fun tryDeductCoinsAtomic(amount: Long): Boolean {
 }
 
 
-
 fun preloadSound(context: Context, fileName: String): MediaPlayer? {
     return try {
         val assetFileDescriptor = context.assets.openFd(fileName)
         MediaPlayer().apply {
-            setDataSource(assetFileDescriptor.fileDescriptor, assetFileDescriptor.startOffset, assetFileDescriptor.length)
-            prepare() // Synchronous prep for faster playback
+            setDataSource(
+                assetFileDescriptor.fileDescriptor,
+                assetFileDescriptor.startOffset,
+                assetFileDescriptor.length
+            )
+            prepare()
             setOnErrorListener { _, what, extra ->
                 Log.e("Audio", "Error in $fileName: what=$what, extra=$extra")
                 false
@@ -634,19 +664,18 @@ fun ZestyTicker(
     modifier: Modifier = Modifier,
     textColor: Color = Color(0xFF0E1320),
     bg: Color = Color(0xFFEAF0FF),
-    speedPxPerSec: Float = 60f,     // adjust speed
-    gapDp: Dp = 48.dp,              // space between items
+    speedPxPerSec: Float = 60f,
+    gapDp: Dp = 48.dp,
     visible: Boolean = true
 ) {
     if (!visible || lines.isEmpty()) return
 
     val density = LocalDensity.current
     val gapPx = with(density) { gapDp.toPx() }
-    val scope = rememberCoroutineScope()
+    rememberCoroutineScope()
     var offset by remember { mutableFloatStateOf(0f) }
     var width by remember { mutableIntStateOf(0) }
 
-    // Build one long line with separators
     val content = remember(lines) { lines.joinToString(separator = "   •   ") }
     val loopContent = remember(content) { "$content   •   $content   •   $content" }
 
@@ -657,12 +686,9 @@ fun ZestyTicker(
                 .clip(RoundedCornerShape(12.dp))
                 .padding(horizontal = 8.dp)
         ) {
-            // Measure container width to loop cleanly
             Box(modifier = Modifier
                 .fillMaxSize()
-                .onGloballyPositioned { width = it.size.width }
-            ) {
-                // Animated scroll
+                .onGloballyPositioned { width = it.size.width }) {
                 LaunchedEffect(loopContent, width, speedPxPerSec) {
                     if (width == 0) return@LaunchedEffect
                     while (true) {
@@ -671,20 +697,20 @@ fun ZestyTicker(
                         val pxPerNs = speedPxPerSec / 1_000_000_000f
                         while (true) {
                             val now = withFrameNanos { it }
-                            val dt = (now - start).coerceAtMost(16_000_000) // clamp step
+                            val dt = (now - start).coerceAtMost(16_000_000)
                             offset -= dt * pxPerNs
-                            // Wrap offset so it never grows too negative
                             if (kotlin.math.abs(offset) > width + gapPx) {
                                 offset += width + gapPx
                             }
-                            // Small break allows Compose to draw
                             break
                         }
                     }
                 }
 
-                // Two copies for seamless loop
-                Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     TickerText(loopContent, offset, textColor)
                 }
             }
@@ -695,16 +721,13 @@ fun ZestyTicker(
 @Composable
 private fun TickerText(text: String, offset: Float, color: Color) {
     Row(
-        modifier = Modifier.fillMaxSize(),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = text,
             color = color,
             maxLines = 1,
             overflow = TextOverflow.Clip,
-            modifier = Modifier
-                .graphicsLayer { translationX = offset }
-        )
+            modifier = Modifier.graphicsLayer { translationX = offset })
     }
 }
