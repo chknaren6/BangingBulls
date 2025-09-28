@@ -1,4 +1,4 @@
-package com.nc.bangingbulls.Home
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,7 +21,7 @@ class UserPortfolioViewModel(
     val lines: StateFlow<List<PortfolioLine>> = _lines
 
     val netWorth: StateFlow<Double> = combine(_coins, _lines) { c, l -> c + l.sumOf { it.value } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+        .stateIn(viewModelScope, SharingStarted.Companion.WhileSubscribed(5000), 0.0)
 
     fun start(uid: String) {
         // Stream coins

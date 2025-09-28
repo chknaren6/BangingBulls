@@ -1,4 +1,4 @@
-package com.nc.bangingbulls.Home.Stocks
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
 import android.annotation.SuppressLint
 import com.google.firebase.firestore.FirebaseFirestore

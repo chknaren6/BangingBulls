@@ -1,14 +1,13 @@
-package com.nc.bangingbulls.stocks
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
-import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.nc.bangingbulls.Home.Stocks.Comments.Comment
 import com.nc.bangingbulls.Home.Stocks.Leaderboard.LeaderboardRepository
-import com.nc.bangingbulls.Home.Stocks.Stock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-
+import kotlin.collections.plus
 
 class StocksViewModel(
     private val repo: StocksRepository = StocksRepository()
@@ -27,7 +26,7 @@ class StocksViewModel(
 
     val stocks: StateFlow<List<Stock>> =
         repo.observeStocks().map { it.sortedByDescending { s -> s.investorsCount } }
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+            .stateIn(viewModelScope, SharingStarted.Companion.Lazily, emptyList())
 
     fun observeStock(stockId: String) = repo.observeStock(stockId)
 
@@ -79,7 +78,7 @@ class StocksViewModel(
             .orderBy("ts", Query.Direction.ASCENDING).addSnapshotListener { snapshot, e ->
                 if (e != null || snapshot == null) return@addSnapshotListener
                 val list = snapshot.documents.mapNotNull { doc ->
-                    Comment.fromMap(doc.id, doc.data ?: emptyMap())
+                    Comment.Companion.fromMap(doc.id, doc.data ?: emptyMap())
                 }
                 _comments.value = list
             }
@@ -110,7 +109,7 @@ class StocksViewModel(
             val parentRef = commentRef.document(replyToId)
             parentRef.get().addOnSuccessListener { snapshot ->
                 val parentData = snapshot.data ?: return@addOnSuccessListener
-                val parentComment = Comment.fromMap(snapshot.id, parentData)
+                val parentComment = Comment.Companion.fromMap(snapshot.id, parentData)
                 val updatedReplies = parentComment.replies + Comment(
                     id = newCommentId,
                     userId = user.uid,
@@ -150,7 +149,7 @@ class StocksViewModel(
             db.collection("stocks").document(stockId).collection("comments").document(commentId)
 
         commentRef.get().addOnSuccessListener { snapshot ->
-            val comment = snapshot.data?.let { Comment.fromMap(snapshot.id, it) }
+            val comment = snapshot.data?.let { Comment.Companion.fromMap(snapshot.id, it) }
                 ?: return@addOnSuccessListener
             val newLikes = if (uid !in comment.likes) comment.likes + uid else comment.likes
             val newDislikes = comment.dislikes - uid
@@ -164,7 +163,7 @@ class StocksViewModel(
             db.collection("stocks").document(stockId).collection("comments").document(commentId)
 
         commentRef.get().addOnSuccessListener { snapshot ->
-            val comment = snapshot.data?.let { Comment.fromMap(snapshot.id, it) }
+            val comment = snapshot.data?.let { Comment.Companion.fromMap(snapshot.id, it) }
                 ?: return@addOnSuccessListener
             val newDislikes =
                 if (uid !in comment.dislikes) comment.dislikes + uid else comment.dislikes
@@ -199,7 +198,7 @@ class StocksViewModel(
                     batch.update(ref, mapOf(
                         "priceHistory" to listOf<Map<String, Any>>(),
                         "lastWeekHistory" to mapOf<String, List<Map<String, Any>>>(),
-                        "lastUpdated" to com.google.firebase.Timestamp.now(),
+                        "lastUpdated" to Timestamp.now(),
                         "socialMomentum" to 0.0 // new field for interactions
                     ))
                 }

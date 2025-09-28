@@ -1,4 +1,4 @@
-package com.nc.bangingbulls.Home.Stocks
+package com.nc.bangingbulls.Home.Stocks.Market
 
 import android.app.Application
 import androidx.work.*

@@ -1,6 +1,5 @@
-package com.nc.bangingbulls.Home.Stocks
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
-import android.graphics.Canvas
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+
 @Composable
 fun SimpleLineChart(points: List<Double>, modifier: Modifier = Modifier.height(180.dp)) {
     if (points.isEmpty()) { Box(modifier = modifier) { Text("No data") }; return }

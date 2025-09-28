@@ -1,11 +1,11 @@
-package com.nc.bangingbulls.Home.Stocks
+package com.nc.bangingbulls.Home.Stocks.Market
 
 
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.firebase.firestore.FirebaseFirestore
-import com.nc.bangingbulls.stocks.StocksRepository
+import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksRepository
 
 class EconomyTickWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {

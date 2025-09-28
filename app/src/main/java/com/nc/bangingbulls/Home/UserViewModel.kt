@@ -10,7 +10,7 @@ import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
-import com.nc.bangingbulls.Home.Stocks.Holding
+import com.nc.bangingbulls.Home.Stocks.StockFiles.Holding
 
 class UserViewModel : ViewModel() {
     private val db = Firebase.firestore

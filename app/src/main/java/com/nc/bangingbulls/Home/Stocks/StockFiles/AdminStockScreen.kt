@@ -1,4 +1,4 @@
-package com.nc.bangingbulls.Home.Stocks
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,7 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.nc.bangingbulls.stocks.StocksViewModel
+import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksViewModel
 @Composable
 fun AdminStockScreen(
     stocksViewModel: StocksViewModel,

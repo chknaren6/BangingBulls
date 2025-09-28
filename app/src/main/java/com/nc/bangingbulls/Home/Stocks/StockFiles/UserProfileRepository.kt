@@ -1,4 +1,4 @@
-package com.nc.bangingbulls.Home
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await

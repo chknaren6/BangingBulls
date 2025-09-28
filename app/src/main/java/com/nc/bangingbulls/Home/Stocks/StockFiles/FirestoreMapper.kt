@@ -1,6 +1,9 @@
-package com.nc.bangingbulls.Home.Stocks
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
 import com.google.firebase.firestore.DocumentSnapshot
+import kotlin.collections.get
+
+
 fun DocumentSnapshot.toStock(): Stock {
     val id = id
     val name = getString("name") ?: ""

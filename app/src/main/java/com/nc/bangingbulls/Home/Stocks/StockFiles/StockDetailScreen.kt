@@ -1,5 +1,5 @@
 // StockDetailScreen.kt
-package com.nc.bangingbulls.Home.Stocks
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -20,7 +20,7 @@ import com.nc.bangingbulls.Home.HoldingAdminControls
 import com.nc.bangingbulls.Home.Stocks.Comments.Comment
 import com.nc.bangingbulls.Home.Stocks.Comments.CommentInput
 import com.nc.bangingbulls.Home.Stocks.Comments.CommentsList
-import com.nc.bangingbulls.stocks.StocksViewModel
+import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksViewModel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch

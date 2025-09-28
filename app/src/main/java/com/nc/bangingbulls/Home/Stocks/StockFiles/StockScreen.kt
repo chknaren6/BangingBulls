@@ -1,4 +1,4 @@
-package com.nc.bangingbulls.Home.Stocks
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.nc.bangingbulls.stocks.StocksViewModel
+import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksViewModel
 
 @Composable
 fun StocksScreen(navController: NavController, stocksViewModel: StocksViewModel) {

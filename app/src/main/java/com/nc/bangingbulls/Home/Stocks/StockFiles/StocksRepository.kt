@@ -1,19 +1,17 @@
-package com.nc.bangingbulls.stocks
+package com.nc.bangingbulls.Home.Stocks.StockFiles
 
-import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
-import com.google.firebase.auth.auth
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.nc.bangingbulls.Home.Stocks.Comments.Comment
-import com.nc.bangingbulls.Home.Stocks.Stock
-import com.nc.bangingbulls.Home.Stocks.toStock
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import kotlin.collections.get
 import kotlin.math.max
 import kotlin.math.round
 import kotlin.random.Random
@@ -66,7 +64,7 @@ class StocksRepository(
             "dislikes" to stock.dislikes,
             "investorsCount" to stock.investorsCount,
             "description" to stock.description,
-            "updatedAt" to Timestamp.now()
+            "updatedAt" to Timestamp.Companion.now()
         )
         doc.set(payload).await()
     }
@@ -102,10 +100,10 @@ class StocksRepository(
 
     suspend fun buyStockTransactional(stockId: String, qty: Long): Result<Unit> {
         if (qty <= 0) return Result.failure(IllegalArgumentException("Quantity must be > 0"))
-        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
             ?: return Result.failure(IllegalStateException("Not signed in"))
 
-        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        val db = FirebaseFirestore.getInstance()
         val userRef = db.collection("users").document(uid)
         val stockRef = db.collection("stocks").document(stockId)
         val holdingRef = userRef.collection("holdings").document(stockId)
@@ -151,7 +149,7 @@ class StocksRepository(
                 val newAvailable = (available - qty).coerceAtLeast(0L)
 
                 val impact = (1.0 + (0.0008 * qty).coerceAtMost(0.15))
-                val newPrice = kotlin.math.round(price * impact * 100.0) / 100.0
+                val newPrice = round(price * impact * 100.0) / 100.0
                 val pricePoint = mapOf("ts" to System.currentTimeMillis(), "price" to newPrice)
 
                 // WRITES
@@ -165,8 +163,8 @@ class StocksRepository(
 
                 // Create membership if not present and bump investorsCount once
                 if (!holderSnap.exists()) {
-                    tx.set(holderRef, mapOf("since" to com.google.firebase.Timestamp.now()))
-                    tx.update(stockRef, "investorsCount", com.google.firebase.firestore.FieldValue.increment(1))
+                    tx.set(holderRef, mapOf("since" to Timestamp.now()))
+                    tx.update(stockRef, "investorsCount", FieldValue.increment(1))
                 }
 
                 tx.update(stockRef, "availableSupply", newAvailable)
@@ -174,8 +172,8 @@ class StocksRepository(
                     stockRef,
                     mapOf(
                         "price" to newPrice,
-                        "updatedAt" to com.google.firebase.Timestamp.now(),
-                        "priceHistory" to com.google.firebase.firestore.FieldValue.arrayUnion(pricePoint)
+                        "updatedAt" to Timestamp.now(),
+                        "priceHistory" to FieldValue.arrayUnion(pricePoint)
                     )
                 )
 
@@ -205,10 +203,10 @@ class StocksRepository(
 
     suspend fun sellStockTransactional(stockId: String, qty: Long): Result<Unit> {
         if (qty <= 0) return Result.failure(IllegalArgumentException("Quantity must be > 0"))
-        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
             ?: return Result.failure(IllegalStateException("Not signed in"))
 
-        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        val db = FirebaseFirestore.getInstance()
         val userRef = db.collection("users").document(uid)
         val stockRef = db.collection("stocks").document(stockId)
         val holdingRef = userRef.collection("holdings").document(stockId)
@@ -241,7 +239,7 @@ class StocksRepository(
                 val newAvailable = available + qty
 
                 val impact = (1.0 - (0.0008 * qty).coerceAtMost(0.15))
-                val newPrice = kotlin.math.round(price * impact * 100.0) / 100.0
+                val newPrice = round(price * impact * 100.0) / 100.0
                 val pricePoint = mapOf("ts" to System.currentTimeMillis(), "price" to newPrice)
 
                 // WRITES
@@ -251,7 +249,7 @@ class StocksRepository(
                     tx.delete(holdingRef)
                     if (holderSnap.exists()) {
                         tx.delete(holderRef)
-                        tx.update(stockRef, "investorsCount", com.google.firebase.firestore.FieldValue.increment(-1))
+                        tx.update(stockRef, "investorsCount", FieldValue.increment(-1))
                     }
                 } else {
                     tx.update(holdingRef, "qty", leftQty)
@@ -262,8 +260,8 @@ class StocksRepository(
                     stockRef,
                     mapOf(
                         "price" to newPrice,
-                        "updatedAt" to com.google.firebase.Timestamp.now(),
-                        "priceHistory" to com.google.firebase.firestore.FieldValue.arrayUnion(pricePoint)
+                        "updatedAt" to Timestamp.now(),
+                        "priceHistory" to FieldValue.arrayUnion(pricePoint)
                     )
                 )
 
@@ -326,7 +324,7 @@ class StocksRepository(
         batch.commit().await()
     }
     suspend fun tickEconomy() {
-        val now = java.time.ZonedDateTime.now()
+        val now = ZonedDateTime.now()
         val hour = now.hour
         if (hour < 5 || hour > 22) return
 
@@ -358,7 +356,7 @@ class StocksRepository(
                 mapOf(
                     "price" to newPrice,
                     "priceHistory" to FieldValue.arrayUnion(point),
-                    "updatedAt" to com.google.firebase.Timestamp.now(),
+                    "updatedAt" to Timestamp.now(),
                     "socialMomentum" to decayed
                 )
             ).await()
@@ -440,11 +438,11 @@ class StocksRepository(
             "SMRKT"-> if (hour in 18..21) 0.45 else 0.12
             else   -> 0.25
         }
-        val noise = kotlin.random.Random.nextDouble(-vol, vol)
+        val noise = Random.nextDouble(-vol, vol)
         val demandImpact = (buyVolume - sellVolume) * 0.001
         val socialImpact = momentum.coerceIn(-5.0, 5.0) * 0.02 // scale
         val next = maxOf(1.0, current + noise + demandImpact + socialImpact)
-        return kotlin.math.round(next * 100.0) / 100.0
+        return round(next * 100.0) / 100.0
     }
 
 
@@ -478,8 +476,8 @@ class StocksRepository(
     suspend fun seedLastWeekAndDistributeToUsers(userUids: List<String>) {
         require(userUids.size == 5) { "Provide exactly 5 user UIDs" }
 
-        val zone = java.time.ZoneId.systemDefault()
-        val today = java.time.LocalDate.now()
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
         val stocksSnap = db.collection("stocks").get().await()
 
         for (stockDoc in stocksSnap.documents) {
@@ -519,7 +517,7 @@ class StocksRepository(
                     "lastWeekHistory" to lwhForStock,
                     "priceHistory" to emptyList<Map<String, Any>>(),
                     "price" to base,
-                    "updatedAt" to com.google.firebase.Timestamp.now()
+                    "updatedAt" to Timestamp.now()
                 )
             ).await()
 
@@ -551,7 +549,7 @@ class StocksRepository(
                 val consumed = parts.sum()
                 batch.update(stockRef, "availableSupply", (currentAvailable - consumed).coerceAtLeast(0L))
                 if (investorsAdded > 0) {
-                    batch.update(stockRef, "investorsCount", com.google.firebase.firestore.FieldValue.increment(investorsAdded))
+                    batch.update(stockRef, "investorsCount", FieldValue.increment(investorsAdded))
                 }
                 batch.commit().await()
             }
@@ -559,7 +557,7 @@ class StocksRepository(
     }
     private fun splitSupplyAcrossFive(available: Long): List<Long> {
         if (available <= 0L) return listOf(0,0,0,0,0)
-        val weights = List(5) { kotlin.random.Random.nextDouble(0.5, 1.5) }
+        val weights = List(5) { Random.nextDouble(0.5, 1.5) }
         val sum = weights.sum()
         val raw = weights.map { (it / sum) * available }
         val rounded = raw.map { it.toLong() }.toMutableList()
@@ -577,14 +575,14 @@ class StocksRepository(
             "SMRKT"-> if (hour in 18..21) 0.45 else 0.12
             else   -> 0.25
         }
-        val noise = kotlin.random.Random.nextDouble(-vol, vol)
+        val noise = Random.nextDouble(-vol, vol)
         val drift = when (symbol.uppercase()) {
             "MESS" -> if (hour in 12..13) 0.10 else 0.0
             "SFC", "MCFE" -> if (hour in 18..20) 0.08 else 0.0
             else -> 0.0
         }
-        val next = kotlin.math.max(1.0, current + noise + drift)
-        return kotlin.math.round(next * 100.0) / 100.0
+        val next = max(1.0, current + noise + drift)
+        return round(next * 100.0) / 100.0
     }
 
     // Read a user's portfolio lines with P/L

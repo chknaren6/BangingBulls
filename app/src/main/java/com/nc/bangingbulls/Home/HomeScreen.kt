@@ -40,10 +40,10 @@ import com.nc.bangingbulls.Home.Game.CrashGameScreen
 import com.nc.bangingbulls.Home.Game.DiceGameScreen
 import com.nc.bangingbulls.Home.Game.GameScreen
 import com.nc.bangingbulls.Home.Game.LimboGameScreen
-import com.nc.bangingbulls.Home.Stocks.AdminStockScreen
-import com.nc.bangingbulls.Home.Stocks.StockDetailScreen
-import com.nc.bangingbulls.Home.Stocks.StocksScreen
-import com.nc.bangingbulls.stocks.StocksViewModel
+import com.nc.bangingbulls.Home.Stocks.StockFiles.AdminStockScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.StockDetailScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksViewModel
 import kotlinx.coroutines.launch
 
 @SuppressLint("ViewModelConstructorInComposable")
