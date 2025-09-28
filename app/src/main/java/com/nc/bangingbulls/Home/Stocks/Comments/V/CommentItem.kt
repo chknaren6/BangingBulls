@@ -1,5 +1,6 @@
 package com.nc.bangingbulls.Home.Stocks.Comments.V
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,12 +9,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.nc.bangingbulls.Home.Stocks.Comments.M.Comment
+import com.nc.bangingbulls.R
 
 @Composable
 fun CommentItem(
@@ -31,11 +38,20 @@ fun CommentItem(
                 Text(comment.username)
                 Text(comment.text)
             }
-            Row {
-                Text("Like", modifier = Modifier.clickable { onLike(comment) })
-                Spacer(Modifier.width(4.dp))
-                Text("Dislike", modifier = Modifier.clickable { onDislike(comment) })
-                Spacer(Modifier.width(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                IconButton(
+                    onClick = { onLike(comment) },
+                    modifier = Modifier.background(Color.Black, RoundedCornerShape(6.dp))
+                ) {
+                    Icon(painter = painterResource(R.drawable.thumb_up), contentDescription = "Like", tint = Color.White)
+                }
+                IconButton(
+                    onClick = {onDislike(comment)},
+                    modifier = Modifier.background(Color.Black, RoundedCornerShape(6.dp))
+                ) {
+                    Icon(painter = painterResource(R.drawable.thumb_down), contentDescription = "Dislike", tint = Color.White)
+                }
+
                 Button(onClick = { onReply(comment) }) { Text("Reply") }
             }
         }

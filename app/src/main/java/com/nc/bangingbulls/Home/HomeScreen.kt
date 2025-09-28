@@ -214,7 +214,7 @@ fun HomeNavHost(
             arguments = listOf(navArgument("stockId") { type = NavType.StringType })
         ) { backStackEntry ->
             val stockId = backStackEntry.arguments?.getString("stockId") ?: ""
-            StockDetailScreen(stockId, navControllerHome, stocksViewModel)
+            StockDetailScreen(stockId, navControllerHome, stocksViewModel, userViewModel)
         }
 
         composable("AdminStockScreen") { AdminStockScreen(stocksViewModel, navControllerHome) }

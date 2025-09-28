@@ -1,49 +1,51 @@
 package com.nc.bangingbulls.Home.Stocks.StockFiles.V
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.nc.bangingbulls.Home.Stocks.StockFiles.M.PricePoint
 import com.nc.bangingbulls.Home.Stocks.StockFiles.M.Stock
 
 @Composable
-fun SimpleLineChart(points: List<Double>, modifier: Modifier = Modifier.height(180.dp)) {
-    if (points.isEmpty()) { Box(modifier = modifier) { Text("No data") }; return }
-    val max = points.maxOrNull() ?: 1.0
-    val min = points.minOrNull() ?: 0.0
-    Canvas(modifier = modifier.fillMaxWidth()) {
-        val w = size.width
+fun SimpleLineChart(prices: List<Double>) {
+    Canvas(modifier = Modifier
+        .fillMaxSize()
+        .padding(8.dp)) {
+        if (prices.size < 2) return@Canvas
+        val maxPrice = prices.maxOrNull() ?: 0.0
+        val minPrice = prices.minOrNull() ?: 0.0
+        val w = size.width / (prices.size - 1)
         val h = size.height
-        val stepX = w / (points.size - 1).coerceAtLeast(1)
-        val normalized = points.map { ((it - min) / (max - min + 1e-9)).toFloat() } // 0..1
 
-        val path = Path()
-        normalized.forEachIndexed { i, v ->
-            val x = (i * stepX).toFloat()
-            val y = h - (v * h)
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-        }
-        drawPath(path, color = Color(0xFF00C853), style = Stroke(width = 3f))
+        for (i in 0 until prices.size - 1) {
+            val startX = i * w
+            val startY = h - ((prices[i] - minPrice) / (maxPrice - minPrice) * h).toFloat()
+            val endX = (i + 1) * w
+            val endY = h - ((prices[i + 1] - minPrice) / (maxPrice - minPrice) * h).toFloat()
 
-        normalized.forEachIndexed { i, v ->
-            val x = (i * stepX).toFloat()
-            val y = h - (v * h)
-            drawCircle(Color.White, radius = 3f, center = Offset(x, y))
+            val color = when {
+                prices[i + 1] > prices[i] -> Color(0xFF1B5E20)
+                prices[i + 1] < prices[i] -> Color(0xFFD32F2F)
+                else -> Color(0xFF1976D2)
+            }
+            drawLine(
+                color = color,
+                start = Offset(startX, startY),
+                end = Offset(endX, endY),
+                strokeWidth = 4f
+            )
         }
     }
 }
 
 fun mergedLifetimePoints(stock: Stock): List<PricePoint> {
-    val fromWeek = stock.lastWeekHistory.keys.sorted().flatMap { day -> stock.lastWeekHistory[day].orEmpty() }
+    val fromWeek =
+        stock.lastWeekHistory.keys.sorted().flatMap { day -> stock.lastWeekHistory[day].orEmpty() }
     return fromWeek + stock.priceHistory
 }
 
