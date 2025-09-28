@@ -25,12 +25,10 @@ class UserPortfolioViewModel(
         .stateIn(viewModelScope, SharingStarted.Companion.WhileSubscribed(5000), 0.0)
 
     fun start(uid: String) {
-        // Stream coins
         db.collection("users").document(uid).addSnapshotListener { d, _ ->
             val c = d?.getDouble("coins") ?: d?.getLong("coins")?.toDouble() ?: 0.0
             _coins.value = c
         }
-        // Stream holdings + refresh prices for each update
         db.collection("users").document(uid).collection("holdings")
             .addSnapshotListener { snap, _ ->
                 viewModelScope.launch {

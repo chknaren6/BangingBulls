@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -37,6 +40,7 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.nc.bangingbulls.Authentication.M.GoogleSignInUtils
+import com.nc.bangingbulls.R
 
 @SuppressLint("CoroutineCreationDuringComposition")
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -73,7 +77,26 @@ fun AuthScreen(navController: NavController) {
             auth.removeAuthStateListener(listener)
         }
     }
+    Image(
+        painter = painterResource(id = R.drawable.bgauth),
+        contentDescription = null,
+        modifier = Modifier.fillMaxSize(),
+        contentScale = ContentScale.Crop
+    )
+// Optional soft scrim to improve contrast
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0f to Color(0x990B1020),
+                    0.35f to Color.Transparent,
+                    1f to Color(0x990B1020)
+                )
+            )
+    )
     Box(modifier = Modifier.fillMaxSize()) {
+
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Card(
                 modifier = Modifier
@@ -110,8 +133,8 @@ fun AuthScreen(navController: NavController) {
                         Spacer(Modifier.height(8.dp))
 
                         Text(
-                            text = "Password-less Authentication :)",
-                            fontSize = 18.sp,
+                            text = "This is a Passwordless Authentication System",
+                            fontSize = 14.sp,
                             color=Color(0xFF001524),
                             textAlign = TextAlign.Center
                         )

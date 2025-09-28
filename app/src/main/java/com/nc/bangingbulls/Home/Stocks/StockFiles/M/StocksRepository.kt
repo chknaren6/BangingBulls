@@ -21,10 +21,9 @@ class StocksRepository(
 ) {
 
     private val stocksCol = db.collection("stocks")
-    private val usersCol = db.collection("users")
+     val usersCol = db.collection("users")
     private val tradesCol = db.collection("trades")
 
-    // Live list of stocks
     fun observeStocks() = callbackFlow<List<Stock>> {
         val sub = stocksCol.addSnapshotListener { snap, err ->
             if (err != null) {
@@ -37,7 +36,6 @@ class StocksRepository(
         awaitClose { sub.remove() }
     }
 
-    // Observe single stock
     fun observeStock(stockId: String) = callbackFlow<Stock?> {
         val docRef = stocksCol.document(stockId)
         val sub = docRef.addSnapshotListener { snap, err ->
@@ -50,7 +48,6 @@ class StocksRepository(
         awaitClose { sub.remove() }
     }
 
-    // Add initial stock (admin or dev)
     suspend fun addStock(stock: Stock) {
         val doc = stocksCol.document(stock.id.ifBlank { stock.symbol.lowercase() })
         val payload = mapOf(
@@ -69,15 +66,12 @@ class StocksRepository(
         doc.set(payload).await()
     }
 
-    // Basic like/dislike increment
     suspend fun likeStock(stockId: String, delta: Long = 1) {
         stocksCol.document(stockId).update("likes", FieldValue.increment(delta)).await()
     }
     suspend fun dislikeStock(stockId: String, delta: Long = 1) {
         stocksCol.document(stockId).update("dislikes", FieldValue.increment(delta)).await()
     }
-
-    // Add a comment under the stock
     suspend fun addComment(stockId: String, comment: Comment) {
         val comments = stocksCol.document(stockId).collection("comments")
         val doc = comments.document()
@@ -96,8 +90,7 @@ class StocksRepository(
     private fun impactPriceOnSell(price: Double, qty: Long): Double {
         val impact = 1.0 - (0.0008 * qty).coerceAtLeast(-0.15)
         return round(price * impact * 100.0) / 100.0
-    }// StocksRepository.kt
-
+    }
     suspend fun buyStockTransactional(stockId: String, qty: Long): Result<Unit> {
         if (qty <= 0) return Result.failure(IllegalArgumentException("Quantity must be > 0"))
         val uid = FirebaseAuth.getInstance().currentUser?.uid
@@ -112,7 +105,6 @@ class StocksRepository(
 
         return try {
             db.runTransaction { tx ->
-                // READS FIRST
                 val userSnap = tx.get(userRef)
                 val stockSnap = tx.get(stockRef)
                 val holdingSnap = tx.get(holdingRef)
@@ -133,7 +125,6 @@ class StocksRepository(
                 val totalCost = price * qty
                 if (userCoins < totalCost) throw IllegalStateException("Not enough coins")
 
-                // Compute new states
                 val newUserCoins = userCoins - totalCost
 
                 val (newQty, newAvg) = if (holdingSnap.exists()) {
@@ -152,7 +143,6 @@ class StocksRepository(
                 val newPrice = round(price * impact * 100.0) / 100.0
                 val pricePoint = mapOf("ts" to System.currentTimeMillis(), "price" to newPrice)
 
-                // WRITES
                 tx.update(userRef, "coins", newUserCoins)
 
                 if (holdingSnap.exists()) {
@@ -161,7 +151,6 @@ class StocksRepository(
                     tx.set(holdingRef, mapOf("stockId" to stockId, "qty" to newQty, "avgPrice" to newAvg))
                 }
 
-                // Create membership if not present and bump investorsCount once
                 if (!holderSnap.exists()) {
                     tx.set(holderRef, mapOf("since" to Timestamp.now()))
                     tx.update(stockRef, "investorsCount", FieldValue.increment(1))
@@ -215,7 +204,6 @@ class StocksRepository(
 
         return try {
             db.runTransaction { tx ->
-                // READS
                 val userSnap = tx.get(userRef)
                 val stockSnap = tx.get(stockRef)
                 val holdingSnap = tx.get(holdingRef)
@@ -230,7 +218,6 @@ class StocksRepository(
 
                 val available = stockSnap.getLong("availableSupply") ?: 0L
 
-                // Compute
                 val revenue = price * qty
                 val userCoins = (userSnap.getDouble("coins") ?: userSnap.getLong("coins")?.toDouble() ?: 0.0)
                 val newUserCoins = userCoins + revenue
@@ -242,7 +229,6 @@ class StocksRepository(
                 val newPrice = round(price * impact * 100.0) / 100.0
                 val pricePoint = mapOf("ts" to System.currentTimeMillis(), "price" to newPrice)
 
-                // WRITES
                 tx.update(userRef, "coins", newUserCoins)
 
                 if (leftQty <= 0L) {
@@ -287,7 +273,6 @@ class StocksRepository(
     }
 
 
-    // Compute leaderboard = coins + sum(currentPrice * qty) across all holdings
     suspend fun recomputeLeaderboardForAllUsers() {
         val db = FirebaseFirestore.getInstance()
         val users = db.collection("users").get().await().documents
@@ -349,7 +334,6 @@ class StocksRepository(
             val newPrice = calcNextPrice(symbol, hour, currentPrice, buys, sells, momentum)
             val point = mapOf("ts" to end, "price" to newPrice)
 
-            // decay momentum by 10% every tick so effects fade
             val decayed = momentum * 0.9
 
             stocksCol.document(stockId).update(
@@ -364,7 +348,6 @@ class StocksRepository(
     }
 
 
-    // Nightly at 23:59: move today's priceHistory to lastWeekHistory[yyyy-MM-dd], keep only last 7 keys, then clear priceHistory
     suspend fun archiveTodayToLastWeek() {
         val today = LocalDate.now()
         val dayKey = today.toString() // yyyy-MM-dd
@@ -394,7 +377,6 @@ class StocksRepository(
         }
     }
 
-    // One-time generator to backfill last 7 days of history with artificial movement
     suspend fun generateLastWeekHistoryBaseline() {
         val today = LocalDate.now()
         val zone = ZoneId.systemDefault()
@@ -446,10 +428,8 @@ class StocksRepository(
     }
 
 
-    // In StocksRepository.kt
 
     suspend fun onStockComment(stockId: String, sentiment: Int = 1) {
-        // sentiment: +1 default; you can pass -1 for negative
         stocksCol.document(stockId).update("socialMomentum", FieldValue.increment(0.5 * sentiment)).await()
     }
 
@@ -488,13 +468,10 @@ class StocksRepository(
             val totalSupply = (stockDoc.getLong("totalSupply") ?: 0L)
             val currentAvailable = (stockDoc.getLong("availableSupply") ?: totalSupply)
 
-            // Start from current price if present, else a sane default
             var base = stockDoc.getDouble("price") ?: 10.0
 
-            // Build a new independent map for THIS stock
             val lwhForStock = mutableMapOf<String, List<Map<String, Any>>>()
 
-            // Generate last 6 full days (keep today empty; runtime engine will fill today)
             for (d in 6 downTo 1) {
                 val date = today.minusDays(d.toLong())
                 val points = mutableListOf<Map<String, Any>>()
@@ -506,11 +483,10 @@ class StocksRepository(
                         points.add(mapOf("ts" to ts, "price" to price))
                     }
                 }
-                lwhForStock[date.toString()] = points.toList() // copy
+                lwhForStock[date.toString()] = points.toList()
                 base = points.last()["price"] as Double
             }
 
-            // Write lastWeekHistory and reset today's history for THIS stock
             val stockRef = db.collection("stocks").document(stockId)
             stockRef.update(
                 mapOf(
@@ -521,7 +497,6 @@ class StocksRepository(
                 )
             ).await()
 
-            // Distribute available supply to 5 users
             if (currentAvailable > 0) {
                 val parts = splitSupplyAcrossFive(currentAvailable)
 
@@ -533,8 +508,7 @@ class StocksRepository(
                     val userRef = db.collection("users").document(uid)
                     val holdingRef = userRef.collection("holdings").document(stockId)
 
-                    val avgSeedPrice = base // simple choice; or average of last day points
-
+                    val avgSeedPrice = base
                     batch.set(
                         holdingRef,
                         mapOf(
@@ -585,7 +559,52 @@ class StocksRepository(
         return round(next * 100.0) / 100.0
     }
 
-    // Read a user's portfolio lines with P/L
+    suspend fun getUserPortfolioDocs(userId: String): List<PortfolioLine> {
+        val portfolio = mutableListOf<PortfolioLine>()
+
+        try {
+            // Fetch user holdings
+            val holdingsSnapshot = usersCol
+                .document(userId)
+                .collection("holdings")
+                .get()
+                .await()
+
+            val stocksSnapshot = stocksCol
+                .get()
+                .await()
+            val stocksMap = stocksSnapshot.documents.associateBy { it.id }
+
+            for (doc in holdingsSnapshot.documents) {
+                val stockId = doc.getString("stockId") ?: continue
+                val qty = doc.getLong("qty") ?: continue
+                val avgPrice = doc.getDouble("avgPrice") ?: continue
+
+                val stockDoc = stocksMap[stockId] ?: continue
+                val symbol = stockDoc.getString("symbol") ?: "?"
+                val currentPrice = stockDoc.getDouble("price") ?: 0.0
+
+                portfolio.add(
+                    PortfolioLine(
+                        symbol = symbol,
+                        qty = qty,
+                        avgPrice = avgPrice,
+                        currentPrice = currentPrice,
+                        name = stockDoc.getString("name") ?: "?",
+                        invested = qty * avgPrice,
+                        currentValue = currentPrice * qty,
+                        pnl = currentPrice * qty - avgPrice * qty
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return portfolio
+    }
+
+
     suspend fun getUserPortfolio(uid: String): List<PortfolioLine> {
         val userRef = db.collection("users").document(uid)
         val holdings = userRef.collection("holdings").get().await().documents
