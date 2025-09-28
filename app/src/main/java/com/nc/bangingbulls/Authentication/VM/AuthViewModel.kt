@@ -52,19 +52,34 @@ class AuthViewModel(
             isAdmin = false
         )
 
-        firestore.collection("users").document(uid).set(user).addOnSuccessListener {
-                uName = username
-                currentUser = user
-                userLoaded = true
-                isNewUser = false
-                isLoading = false
-                navigateToHome = true
-                onSuccess()
-            }.addOnFailureListener { ex ->
-                isLoading = false
-                errorMessage = ex.localizedMessage
-                onFailure(ex)
-            }
+        firestore.collection("users").document(uid).set(
+            hashMapOf(
+                "uid" to uid,
+                "username" to username,
+                "email" to email,
+                "coins" to 2765L,
+                "spentCoins" to 0L,
+                "lostCoins" to 0L,
+                "lifeTimeEarnings" to 0L,
+                "lastRewardTimestamp" to System.currentTimeMillis(),
+                "createdAt" to System.currentTimeMillis(),
+                "profileStatus" to "active",
+                "isAdmin" to false,
+                "introSeen" to false
+            )
+        ).addOnSuccessListener {
+            uName = username
+            userLoaded = true
+            isNewUser = false
+            isLoading = false
+            navigateToHome = false // stop auto-home
+            onSuccess()
+        }.addOnFailureListener { ex ->
+            isLoading = false
+            errorMessage = ex.localizedMessage
+            onFailure(ex)
+        }
+
     }
 
     fun handleSignIn(uid: String, email: String, onNewUser: () -> Unit, onExistingUser: () -> Unit) {

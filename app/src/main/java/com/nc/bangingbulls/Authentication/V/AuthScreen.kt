@@ -61,22 +61,24 @@ fun AuthScreen(navController: NavController) {
                     .get()
                     .addOnSuccessListener { document ->
                         if (document.exists()) {
-                            navController.navigate("HomeScreen") {
+                            val introSeen = document.getBoolean("introSeen") ?: false
+                            navController.navigate(if (introSeen) "HomeScreen" else "IntroCardScreen") {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                launchSingleTop = true
                             }
                         } else {
                             navController.navigate("UsernameInputScreen") {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                launchSingleTop = true
                             }
                         }
                     }
             }
         }
         auth.addAuthStateListener(listener)
-        onDispose {
-            auth.removeAuthStateListener(listener)
-        }
+        onDispose { auth.removeAuthStateListener(listener) }
     }
+
     Image(
         painter = painterResource(id = R.drawable.bgauth),
         contentDescription = null,

@@ -190,10 +190,14 @@ fun UsernameInputScreen(
                                             username = name,
                                             email = firebaseUser.email ?: "",
                                             onSuccess = {
-                                                navController.navigate("HomeScreen") { popUpTo(0) { inclusive = true } }
+                                                navController.navigate("IntroCardScreen") {
+                                                    popUpTo(0) { inclusive = true }
+                                                    launchSingleTop = true
+                                                }
                                             },
                                             onFailure = { viewModel.setError(it.localizedMessage) }
                                         )
+
                                     }
                                 }
                             },
