@@ -14,7 +14,7 @@ import com.nc.bangingbulls.Home.Stocks.Holding
 
 class UserViewModel : ViewModel() {
     private val db = Firebase.firestore
-    private val auth = Firebase.auth
+    val auth = Firebase.auth
 
     var isAdmin by mutableStateOf(false)
     var username by mutableStateOf("")
@@ -48,13 +48,13 @@ class UserViewModel : ViewModel() {
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid).collection("holdings")
             .addSnapshotListener { snap, _ ->
-                holdings = snap?.documents?.map { doc ->
-                    Holding(
-                        stockId = doc.getString("stockId") ?: "",
-                        qty = doc.getLong("qty") ?: 0L,
-                        avgPrice = doc.getDouble("avgPrice") ?: 0.0
-                    )
+                holdings = snap?.documents?.mapNotNull { doc ->
+                    val sid = doc.getString("stockId") ?: return@mapNotNull null
+                    val qty = doc.getLong("qty") ?: 0L
+                    val avg = doc.getDouble("avgPrice") ?: 0.0
+                    Holding(stockId = sid, qty = qty, avgPrice = avg)
                 } ?: emptyList()
+
             }
     }
 

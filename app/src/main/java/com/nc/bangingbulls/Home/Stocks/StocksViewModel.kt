@@ -1,11 +1,13 @@
 package com.nc.bangingbulls.stocks
 
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.nc.bangingbulls.Home.Stocks.Comments.Comment
+import com.nc.bangingbulls.Home.Stocks.Leaderboard.LeaderboardRepository
 import com.nc.bangingbulls.Home.Stocks.Stock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 
 class StocksViewModel(
@@ -43,15 +46,7 @@ class StocksViewModel(
         }
     }
 
-    fun like(stockId: String) = viewModelScope.launch {
-        repo.likeStock(stockId)
-    }
-
-    fun dislike(stockId: String) = viewModelScope.launch {
-        repo.dislikeStock(stockId)
-    }
-
-    fun buy(stockId: String, qty: Long, maxTotal: Double, onError: (String) -> Unit = {}) =
+   /* fun buy(stockId: String, qty: Long, maxTotal: Double, onError: (String) -> Unit = {}) =
         viewModelScope.launch {
             try {
                 repo.buyStock(stockId, qty, maxTotal)
@@ -68,7 +63,7 @@ class StocksViewModel(
                 onError(e.message ?: "sell failed")
             }
         }
-
+*/
     fun addComment(stockId: String, comment: Comment) = viewModelScope.launch {
         repo.addComment(stockId, comment)
     }
@@ -144,6 +139,8 @@ class StocksViewModel(
                 })
             }
         }
+        viewModelScope.launch { repo.onStockComment(stockId, sentiment = 1) }
+
     }
 
 
@@ -176,10 +173,130 @@ class StocksViewModel(
         }
     }
 
+    fun like(stockId: String) = viewModelScope.launch {
+        repo.likeStock(stockId)
+        repo.onStockLike(stockId)
+    }
+
+    fun dislike(stockId: String) = viewModelScope.launch {
+        repo.dislikeStock(stockId)
+        repo.onStockDislike(stockId)
+    }
 
     fun prepareReply(comment: Comment) {
         replyTo = comment
     }
+
+    // StocksViewModel.kt
+    fun migrateAllStocksModel(onDone: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val db = FirebaseFirestore.getInstance()
+                val stocks = db.collection("stocks").get().await()
+                val batch = db.batch()
+                stocks.documents.forEach { doc ->
+                    val ref = doc.reference
+                    batch.update(ref, mapOf(
+                        "priceHistory" to listOf<Map<String, Any>>(),
+                        "lastWeekHistory" to mapOf<String, List<Map<String, Any>>>(),
+                        "lastUpdated" to com.google.firebase.Timestamp.now(),
+                        "socialMomentum" to 0.0 // new field for interactions
+                    ))
+                }
+                batch.commit().await()
+                onDone()
+            } catch (e: Exception) {
+                onError(e.message ?: "migrate failed")
+            }
+        }
+    }
+
+
+    // StocksViewModel.kt (append)
+
+    data class PortfolioUi(
+        val symbol: String,
+        val name: String,
+        val qty: Long,
+        val avgPrice: Double,
+        val currentPrice: Double,
+        val invested: Double,
+        val currentValue: Double,
+        val pnl: Double
+    )
+
+    private val _portfolio = MutableStateFlow<List<PortfolioUi>>(emptyList())
+    val portfolio: StateFlow<List<PortfolioUi>> = _portfolio
+
+
+
+    fun loadPortfolio(uid: String) {
+        viewModelScope.launch {
+            val lines = repo.getUserPortfolio(uid)
+            _portfolio.value = lines.map {
+                PortfolioUi(
+                    it.symbol, it.name, it.qty, it.avgPrice, it.currentPrice,
+                    it.invested, it.currentValue, it.pnl
+                )
+            }
+        }
+    }
+    // StocksViewModel.kt
+
+    fun buy(stockId: String, qty: Long, onResult: (Boolean, String?) -> Unit) =
+        viewModelScope.launch {
+            val res = repo.buyStockTransactional(stockId, qty)
+            onResult(res.isSuccess, res.exceptionOrNull()?.message)
+            val uid = FirebaseAuth.getInstance().currentUser?.uid
+            if (uid != null) {
+                viewModelScope.launch {
+                    LeaderboardRepository().recomputeForCurrentUser()
+                }
+            }
+        }
+
+    fun sell(stockId: String, qty: Long, onResult: (Boolean, String?) -> Unit) =
+        viewModelScope.launch {
+            val res = repo.sellStockTransactional(stockId, qty)
+            onResult(res.isSuccess, res.exceptionOrNull()?.message)
+            val uid = FirebaseAuth.getInstance().currentUser?.uid
+            if (uid != null) {
+                viewModelScope.launch {
+                    LeaderboardRepository().recomputeForCurrentUser()
+                }
+            }
+        }
+
+    suspend fun recomputeLeaderboardForCurrentUser(uid: String) {
+        val db = FirebaseFirestore.getInstance()
+        val u = db.collection("users").document(uid).get().await()
+        val coins = (u.getDouble("coins") ?: u.getLong("coins")?.toDouble() ?: 0.0)
+
+        val holdings = db.collection("users").document(uid).collection("holdings").get().await().documents
+        val prices = db.collection("stocks").get().await().documents.associateBy({ it.id }) {
+            it.getDouble("price") ?: 0.0
+        }
+
+        var portfolioValue = 0.0
+        for (h in holdings) {
+            val sid = h.getString("stockId") ?: continue
+            val qty = h.getLong("qty") ?: 0L
+            portfolioValue += (prices[sid] ?: 0.0) * qty
+        }
+
+        val total = coins + portfolioValue
+        val lbRef = db.collection("leaderboard").document(uid)
+        lbRef.set(mapOf(
+            "uid" to uid,
+            "username" to (u.getString("username") ?: ""),
+            "coins" to coins,
+            "portfolio" to portfolioValue,
+            "totalCoins" to total,
+            "ts" to System.currentTimeMillis()
+        )).await()
+    }
+
+
 
 
 }

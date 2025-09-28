@@ -64,6 +64,8 @@ dependencies {
     implementation(libs.firebase.database)
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.foundation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

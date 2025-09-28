@@ -1,5 +1,6 @@
 package com.nc.bangingbulls.Home
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ import com.nc.bangingbulls.Home.Stocks.StocksScreen
 import com.nc.bangingbulls.stocks.StocksViewModel
 import kotlinx.coroutines.launch
 
+@SuppressLint("ViewModelConstructorInComposable")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, authViewModel: AuthViewModel, userViewModel: UserViewModel) {

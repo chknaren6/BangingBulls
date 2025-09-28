@@ -39,3 +39,9 @@ fun SimpleLineChart(points: List<Double>, modifier: Modifier = Modifier.height(1
         }
     }
 }
+
+fun mergedLifetimePoints(stock: Stock): List<PricePoint> {
+    val fromWeek = stock.lastWeekHistory.keys.sorted().flatMap { day -> stock.lastWeekHistory[day].orEmpty() }
+    return fromWeek + stock.priceHistory
+}
+

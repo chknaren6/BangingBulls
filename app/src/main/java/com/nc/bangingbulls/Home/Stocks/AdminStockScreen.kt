@@ -38,13 +38,14 @@ fun AdminStockScreen(
 
         Button(onClick = {
             val stock = Stock(
-                id = "",
+                id = symbol.lowercase(),
                 name = name,
-                symbol = symbol,
+                symbol = symbol.uppercase(),
                 price = price.toDoubleOrNull() ?: 0.0,
                 totalSupply = totalSupply.toLongOrNull() ?: 0L,
                 availableSupply = availableSupply.toLongOrNull() ?: 0L
             )
+
 
             stocksViewModel.addStock(stock)
             navController.navigate("home") {
@@ -54,6 +55,9 @@ fun AdminStockScreen(
         }) {
             Text("Create Stock")
         }
+        Button(onClick = { stocksViewModel.migrateAllStocksModel() }) { Text("Migrate") }
+
+
     }
 }
 

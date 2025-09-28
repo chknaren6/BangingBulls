@@ -27,6 +27,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -36,9 +38,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.nc.bangingbulls.Authentication.AuthViewModel
+import com.nc.bangingbulls.Home.Stocks.Leaderboard.LeaderboardScreen
+import com.nc.bangingbulls.Home.Stocks.Leaderboard.LeaderboardViewModel
 import com.nc.bangingbulls.Home.Stocks.PortfolioItem
+import com.nc.bangingbulls.Home.Stocks.db
 import com.nc.bangingbulls.stocks.StocksViewModel
 
 @Composable
@@ -55,7 +61,7 @@ fun HomeScreenContent(
 
     val holdings by remember { derivedStateOf { userViewModel.holdings } }
     val stocks by remember { derivedStateOf { stocksViewModel.stocks.value } }
-    val leaderboard by remember { derivedStateOf { userViewModel.leaderboard } }
+ //   var leaderboard by remember { derivedStateOf { userViewModel.leaderboard } }
 
     val portfolio = holdings.mapNotNull { holding ->
         val stock = stocks.find { it.id == holding.stockId } ?: return@mapNotNull null
@@ -82,7 +88,9 @@ fun HomeScreenContent(
 
         // Leaderboard
         Text("Leaderboard", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        LazyColumn {
+        val leaderboardViewModel = viewModel<LeaderboardViewModel>()
+        LeaderboardScreen(leaderboardViewModel)
+       /* LazyColumn {
             items(leaderboard) { user ->
                 Card(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
                     Row(
@@ -94,7 +102,7 @@ fun HomeScreenContent(
                     }
                 }
             }
-        }
+        }*/
 
         Spacer(Modifier.height(24.dp))
 
@@ -126,14 +134,42 @@ fun HomeScreenContent(
                 )
             }
         }
+        val uid = userViewModel.auth.currentUser?.uid ?: return
+        Text("Your Portfolio", fontWeight = FontWeight.Bold)
+        HomePortfolioSection(uid)
+
         if(userViewModel.isAdmin){
             Button(onClick = { navControllerHome.navigate("AdminStockScreen") }) {
                 Text("Create Stock")
             }
+
+
         }
+
     }
 
 }
 
 
 fun Double.format(digits: Int) = "%.${digits}f".format(this)
+
+@Composable
+fun PortfolioScreen(viewModel: StocksViewModel, uid: String) {
+    val lines by viewModel.portfolio.collectAsState()
+    LaunchedEffect(uid) { viewModel.loadPortfolio(uid) }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(12.dp)
+    ) {
+        items(lines) { line ->
+            Card(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("${line.name} (${line.symbol})", fontWeight = FontWeight.Bold)
+                    Text("Qty: ${line.qty}  Avg: ${"%.2f".format(line.avgPrice)}  Now: ${"%.2f".format(line.currentPrice)}")
+                    Text("Invested: ${"%.2f".format(line.invested)}  Value: ${"%.2f".format(line.currentValue)}")
+                    val color = if (line.pnl >= 0) androidx.compose.ui.graphics.Color(0xFF2E7D32) else androidx.compose.ui.graphics.Color(0xFFC62828)
+                    Text("P/L: ${"%.2f".format(line.pnl)}", color = color)
+                }
+            }
+        }
+    }
+}

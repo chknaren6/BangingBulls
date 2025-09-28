@@ -10,14 +10,14 @@ data class Stock(
     val totalSupply: Long = 0,
     val availableSupply: Long = 0,
     val price: Double = 0.0,
-    val priceHistory: List<PricePoint> = emptyList(),
+    val priceHistory: List<PricePoint> = emptyList(),           // today only
+    val lastWeekHistory: Map<String, List<PricePoint>> = emptyMap(), // yyyy-MM-dd -> points
     val likes: Long = 0,
     val dislikes: Long = 0,
     val investorsCount: Long = 0,
     val description: String = "",
     val updatedAt: Timestamp? = null
 )
-
 data class PricePoint(
     val ts: Long = 0L,
     val price: Double = 0.0

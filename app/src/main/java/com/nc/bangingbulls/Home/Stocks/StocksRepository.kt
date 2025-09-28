@@ -11,6 +11,12 @@ import com.nc.bangingbulls.Home.Stocks.toStock
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import kotlin.math.max
+import kotlin.math.round
+import kotlin.random.Random
 
 class StocksRepository(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -85,112 +91,523 @@ class StocksRepository(
         )
         doc.set(payload).await()
     }
+    private fun impactPriceOnBuy(price: Double, qty: Long): Double {
+        val impact = 1.0 + (0.0008 * qty).coerceAtMost(0.15)
+        return round(price * impact * 100.0) / 100.0
+    }
+    private fun impactPriceOnSell(price: Double, qty: Long): Double {
+        val impact = 1.0 - (0.0008 * qty).coerceAtLeast(-0.15)
+        return round(price * impact * 100.0) / 100.0
+    }// StocksRepository.kt
 
-    // Buy stock - transaction: debit user coins, add holding, update stock price and priceHistory
-    suspend fun buyStock(stockId: String, qty: Long, maxTotalPayment: Double) {
-        val auth = Firebase.auth
-        val uid = auth.currentUser?.uid ?: throw IllegalStateException("No user")
-        val userRef = usersCol.document(uid)
-        val stockRef = stocksCol.document(stockId)
-        db.runTransaction { tx ->
-            val userSnap = tx.get(userRef)
-            val stockSnap = tx.get(stockRef)
+    suspend fun buyStockTransactional(stockId: String, qty: Long): Result<Unit> {
+        if (qty <= 0) return Result.failure(IllegalArgumentException("Quantity must be > 0"))
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            ?: return Result.failure(IllegalStateException("Not signed in"))
 
-            val userCoins = (userSnap.getLong("coins") ?: 0L).toDouble()
-            val price = stockSnap.getDouble("price") ?: 0.0
-            val totalCost = price * qty
+        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        val userRef = db.collection("users").document(uid)
+        val stockRef = db.collection("stocks").document(stockId)
+        val holdingRef = userRef.collection("holdings").document(stockId)
+        val holderRef = stockRef.collection("holders").document(uid) // membership flag
+        val tradesCol = db.collection("trades")
 
-            if (totalCost > maxTotalPayment) throw Exception("Price changed, abort")
-            if (userCoins < totalCost) throw Exception("Insufficient coins")
+        return try {
+            db.runTransaction { tx ->
+                // READS FIRST
+                val userSnap = tx.get(userRef)
+                val stockSnap = tx.get(stockRef)
+                val holdingSnap = tx.get(holdingRef)
+                val holderSnap = tx.get(holderRef)
 
-            // debit coins
-            tx.update(userRef, "coins", userCoins - totalCost)
+                val userCoins = (userSnap.getDouble("coins")
+                    ?: userSnap.getLong("coins")?.toDouble()
+                    ?: 0.0)
 
-            // update holdings (users/{uid}/holdings/{stockId})
-            val holdingRef = userRef.collection("holdings").document(stockId)
-            val holdingSnap = tx.get(holdingRef)
-            if (holdingSnap.exists()) {
-                val oldQty = holdingSnap.getLong("qty") ?: 0L
-                val oldAvg = holdingSnap.getDouble("avgPrice") ?: 0.0
-                val newQty = oldQty + qty
-                val newAvg = ((oldAvg * oldQty) + (price * qty)) / (newQty)
-                tx.update(holdingRef, mapOf("qty" to newQty, "avgPrice" to newAvg))
-            } else {
-                tx.set(holdingRef, mapOf("stockId" to stockId, "qty" to qty, "avgPrice" to price))
-            }
+                val price = stockSnap.getDouble("price")
+                    ?: throw IllegalStateException("Stock has no price")
 
-            // update stock: availableSupply, investorsCount (crudely), and append price sample
-            val available = (stockSnap.getLong("availableSupply") ?: stockSnap.getLong("totalSupply") ?: 0L) - qty
-            tx.update(stockRef, "availableSupply", available)
-            // update price a bit: newPrice = price * (1 + 0.001 * qty)
-            val newPrice = price * (1 + 0.001 * qty)
-            tx.update(stockRef, "price", newPrice)
-            // append priceHistory small entry
-            val point = mapOf("ts" to System.currentTimeMillis(), "price" to newPrice)
-            tx.update(stockRef, "priceHistory", FieldValue.arrayUnion(point))
+                val available = stockSnap.getLong("availableSupply")
+                    ?: stockSnap.getLong("totalSupply")
+                    ?: 0L
 
-            // write a trade record
-            val tradeDoc = tradesCol.document()
-            tx.set(tradeDoc, mapOf(
-                "uid" to uid,
-                "stockId" to stockId,
-                "qty" to qty,
-                "price" to price,
-                "type" to "buy",
-                "ts" to System.currentTimeMillis()
-            ))
+                if (available < qty) throw IllegalStateException("Not enough supply")
+                val totalCost = price * qty
+                if (userCoins < totalCost) throw IllegalStateException("Not enough coins")
 
-            null
-        }.await()
+                // Compute new states
+                val newUserCoins = userCoins - totalCost
+
+                val (newQty, newAvg) = if (holdingSnap.exists()) {
+                    val oldQty = holdingSnap.getLong("qty") ?: 0L
+                    val oldAvg = holdingSnap.getDouble("avgPrice") ?: price
+                    val nQty = oldQty + qty
+                    val nAvg = ((oldAvg * oldQty) + (price * qty)) / nQty
+                    nQty to nAvg
+                } else {
+                    qty to price
+                }
+
+                val newAvailable = (available - qty).coerceAtLeast(0L)
+
+                val impact = (1.0 + (0.0008 * qty).coerceAtMost(0.15))
+                val newPrice = kotlin.math.round(price * impact * 100.0) / 100.0
+                val pricePoint = mapOf("ts" to System.currentTimeMillis(), "price" to newPrice)
+
+                // WRITES
+                tx.update(userRef, "coins", newUserCoins)
+
+                if (holdingSnap.exists()) {
+                    tx.update(holdingRef, mapOf("qty" to newQty, "avgPrice" to newAvg, "stockId" to stockId))
+                } else {
+                    tx.set(holdingRef, mapOf("stockId" to stockId, "qty" to newQty, "avgPrice" to newAvg))
+                }
+
+                // Create membership if not present and bump investorsCount once
+                if (!holderSnap.exists()) {
+                    tx.set(holderRef, mapOf("since" to com.google.firebase.Timestamp.now()))
+                    tx.update(stockRef, "investorsCount", com.google.firebase.firestore.FieldValue.increment(1))
+                }
+
+                tx.update(stockRef, "availableSupply", newAvailable)
+                tx.update(
+                    stockRef,
+                    mapOf(
+                        "price" to newPrice,
+                        "updatedAt" to com.google.firebase.Timestamp.now(),
+                        "priceHistory" to com.google.firebase.firestore.FieldValue.arrayUnion(pricePoint)
+                    )
+                )
+
+                val tradeDoc = tradesCol.document()
+                tx.set(
+                    tradeDoc,
+                    mapOf(
+                        "uid" to uid,
+                        "stockId" to stockId,
+                        "qty" to qty,
+                        "price" to price,
+                        "type" to "buy",
+                        "ts" to System.currentTimeMillis()
+                    )
+                )
+
+                null
+            }.await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    // Sell stock - transaction: credit user coins, reduce holding, update price
-    suspend fun sellStock(stockId: String, qty: Long, minAcceptable: Double) {
-        val auth = Firebase.auth
-        val uid = auth.currentUser?.uid ?: throw IllegalStateException("No user")
-        val userRef = usersCol.document(uid)
-        val stockRef = stocksCol.document(stockId)
 
-        db.runTransaction { tx ->
-            val userSnap = tx.get(userRef)
-            val stockSnap = tx.get(stockRef)
-            val holdingRef = userRef.collection("holdings").document(stockId)
-            val holdingSnap = tx.get(holdingRef)
 
-            val price = stockSnap.getDouble("price") ?: 0.0
-            if (price < minAcceptable) throw Exception("Price below acceptable")
 
-            val oldQty = holdingSnap.getLong("qty") ?: 0L
-            if (oldQty < qty) throw Exception("Insufficient holding")
+    suspend fun sellStockTransactional(stockId: String, qty: Long): Result<Unit> {
+        if (qty <= 0) return Result.failure(IllegalArgumentException("Quantity must be > 0"))
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            ?: return Result.failure(IllegalStateException("Not signed in"))
 
-            val userCoins = (userSnap.getLong("coins") ?: 0L).toDouble()
-            val totalRevenue = price * qty
-            tx.update(userRef, "coins", userCoins + totalRevenue)
+        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        val userRef = db.collection("users").document(uid)
+        val stockRef = db.collection("stocks").document(stockId)
+        val holdingRef = userRef.collection("holdings").document(stockId)
+        val holderRef = stockRef.collection("holders").document(uid)
+        val tradesCol = db.collection("trades")
 
-            val newQty = oldQty - qty
-            if (newQty <= 0) tx.delete(holdingRef) else tx.update(holdingRef, "qty", newQty)
+        return try {
+            db.runTransaction { tx ->
+                // READS
+                val userSnap = tx.get(userRef)
+                val stockSnap = tx.get(stockRef)
+                val holdingSnap = tx.get(holdingRef)
+                val holderSnap = tx.get(holderRef)
 
-            // increase available supply
-            val available = (stockSnap.getLong("availableSupply") ?: 0L) + qty
-            tx.update(stockRef, "availableSupply", available)
-            // price down a bit on sale
-            val newPrice = price * (1 - 0.001 * qty)
-            tx.update(stockRef, "price", newPrice)
-            val point = mapOf("ts" to System.currentTimeMillis(), "price" to newPrice)
-            tx.update(stockRef, "priceHistory", FieldValue.arrayUnion(point))
+                if (!holdingSnap.exists()) throw IllegalStateException("No holding")
+                val haveQty = holdingSnap.getLong("qty") ?: 0L
+                if (haveQty < qty) throw IllegalStateException("Insufficient holding")
 
-            val tradeDoc = tradesCol.document()
-            tx.set(tradeDoc, mapOf(
+                val price = stockSnap.getDouble("price")
+                    ?: throw IllegalStateException("Stock has no price")
+
+                val available = stockSnap.getLong("availableSupply") ?: 0L
+
+                // Compute
+                val revenue = price * qty
+                val userCoins = (userSnap.getDouble("coins") ?: userSnap.getLong("coins")?.toDouble() ?: 0.0)
+                val newUserCoins = userCoins + revenue
+
+                val leftQty = haveQty - qty
+                val newAvailable = available + qty
+
+                val impact = (1.0 - (0.0008 * qty).coerceAtMost(0.15))
+                val newPrice = kotlin.math.round(price * impact * 100.0) / 100.0
+                val pricePoint = mapOf("ts" to System.currentTimeMillis(), "price" to newPrice)
+
+                // WRITES
+                tx.update(userRef, "coins", newUserCoins)
+
+                if (leftQty <= 0L) {
+                    tx.delete(holdingRef)
+                    if (holderSnap.exists()) {
+                        tx.delete(holderRef)
+                        tx.update(stockRef, "investorsCount", com.google.firebase.firestore.FieldValue.increment(-1))
+                    }
+                } else {
+                    tx.update(holdingRef, "qty", leftQty)
+                }
+
+                tx.update(stockRef, "availableSupply", newAvailable)
+                tx.update(
+                    stockRef,
+                    mapOf(
+                        "price" to newPrice,
+                        "updatedAt" to com.google.firebase.Timestamp.now(),
+                        "priceHistory" to com.google.firebase.firestore.FieldValue.arrayUnion(pricePoint)
+                    )
+                )
+
+                val tradeDoc = tradesCol.document()
+                tx.set(
+                    tradeDoc,
+                    mapOf(
+                        "uid" to uid,
+                        "stockId" to stockId,
+                        "qty" to qty,
+                        "price" to price,
+                        "type" to "sell",
+                        "ts" to System.currentTimeMillis()
+                    )
+                )
+
+                null
+            }.await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
+    // Compute leaderboard = coins + sum(currentPrice * qty) across all holdings
+    suspend fun recomputeLeaderboardForAllUsers() {
+        val db = FirebaseFirestore.getInstance()
+        val users = db.collection("users").get().await().documents
+
+        val stocksMap = db.collection("stocks").get().await().documents.associateBy({ it.id }) {
+            it.getDouble("price") ?: 0.0
+        }
+
+        val batch = db.batch()
+        for (u in users) {
+            val uid = u.id
+            val coins = (u.getDouble("coins") ?: u.getLong("coins")?.toDouble() ?: 0.0)
+            val holdings = db.collection("users").document(uid).collection("holdings").get().await().documents
+
+            var portfolioValue = 0.0
+            for (h in holdings) {
+                val stockId = h.getString("stockId") ?: continue
+                val qty = h.getLong("qty") ?: 0L
+                val currentPrice = stocksMap[stockId] ?: 0.0
+                portfolioValue += currentPrice * qty
+            }
+            val total = coins + portfolioValue
+
+            val lbRef = db.collection("leaderboard").document(uid)
+            batch.set(lbRef, mapOf(
                 "uid" to uid,
-                "stockId" to stockId,
-                "qty" to qty,
-                "price" to price,
-                "type" to "sell",
+                "username" to (u.getString("username") ?: ""),
+                "coins" to coins,
+                "portfolio" to portfolioValue,
+                "totalCoins" to total,
                 "ts" to System.currentTimeMillis()
             ))
+        }
+        batch.commit().await()
+    }
+    suspend fun tickEconomy() {
+        val now = java.time.ZonedDateTime.now()
+        val hour = now.hour
+        if (hour < 5 || hour > 22) return
 
-            null
-        }.await()
+        val snap = stocksCol.get().await()
+        val end = System.currentTimeMillis()
+        val start = end - 15L * 60L * 1000L
+
+        for (doc in snap.documents) {
+            val stockId = doc.id
+            val symbol = doc.getString("symbol") ?: continue
+            val currentPrice = doc.getDouble("price") ?: continue
+            val momentum = doc.getDouble("socialMomentum") ?: 0.0
+
+            val recentTrades = tradesCol.whereEqualTo("stockId", stockId).whereGreaterThan("ts", start).get().await()
+            var buys = 0L; var sells = 0L
+            for (t in recentTrades.documents) {
+                val type = t.getString("type") ?: ""
+                val qty = t.getLong("qty") ?: 0L
+                if (type == "buy") buys += qty else if (type == "sell") sells += qty
+            }
+
+            val newPrice = calcNextPrice(symbol, hour, currentPrice, buys, sells, momentum)
+            val point = mapOf("ts" to end, "price" to newPrice)
+
+            // decay momentum by 10% every tick so effects fade
+            val decayed = momentum * 0.9
+
+            stocksCol.document(stockId).update(
+                mapOf(
+                    "price" to newPrice,
+                    "priceHistory" to FieldValue.arrayUnion(point),
+                    "updatedAt" to com.google.firebase.Timestamp.now(),
+                    "socialMomentum" to decayed
+                )
+            ).await()
+        }
+    }
+
+
+    // Nightly at 23:59: move today's priceHistory to lastWeekHistory[yyyy-MM-dd], keep only last 7 keys, then clear priceHistory
+    suspend fun archiveTodayToLastWeek() {
+        val today = LocalDate.now()
+        val dayKey = today.toString() // yyyy-MM-dd
+        val snap = stocksCol.get().await()
+        for (doc in snap.documents) {
+            val priceHistory = (doc.get("priceHistory") as? List<*>)?.mapNotNull { m ->
+                (m as? Map<*, *>)?.let {
+                    val ts = (it["ts"] as? Number)?.toLong() ?: return@mapNotNull null
+                    val p = (it["price"] as? Number)?.toDouble() ?: return@mapNotNull null
+                    mapOf("ts" to ts, "price" to p)
+                }
+            } ?: emptyList()
+
+            val lastWeek = (doc.get("lastWeekHistory") as? Map<*, *>)?.mapKeys { it.key.toString() }?.toMutableMap() ?: mutableMapOf()
+            lastWeek[dayKey] = priceHistory
+
+            // trim to 7 most recent days by key sort
+            val keys = lastWeek.keys.sorted().takeLast(7)
+            val trimmed = keys.associateWith { (lastWeek[it] as? List<*>) ?: emptyList<Any>() }
+
+            stocksCol.document(doc.id).update(
+                mapOf(
+                    "lastWeekHistory" to trimmed,
+                    "priceHistory" to emptyList<Map<String, Any>>()
+                )
+            ).await()
+        }
+    }
+
+    // One-time generator to backfill last 7 days of history with artificial movement
+    suspend fun generateLastWeekHistoryBaseline() {
+        val today = LocalDate.now()
+        val zone = ZoneId.systemDefault()
+        val snap = stocksCol.get().await()
+        for (doc in snap.documents) {
+            val symbol = doc.getString("symbol") ?: continue
+            var base = doc.getDouble("price") ?: 10.0
+            val result = mutableMapOf<String, List<Map<String, Any>>>()
+
+            for (d in 6 downTo 1) {
+                val date = today.minusDays(d.toLong())
+                val points = mutableListOf<Map<String, Any>>()
+                var price = base
+                for (h in 5..22) {
+                    for (m in listOf(0, 15, 30, 45)) {
+                        val ts = date.atTime(h, m).atZone(zone).toInstant().toEpochMilli()
+                        price = calcNextPrice(symbol, h, price, 0, 0, 0.0)
+                        points.add(mapOf("ts" to ts, "price" to price))
+                    }
+                }
+                result[date.toString()] = points
+                base = points.last()["price"] as Double
+            }
+            stocksCol.document(doc.id).update("lastWeekHistory", result).await()
+        }
+    }
+
+    private fun calcNextPrice(
+        symbol: String,
+        hour: Int,
+        current: Double,
+        buyVolume: Long,
+        sellVolume: Long,
+        momentum: Double
+    ): Double {
+        val vol = when (symbol.uppercase()) {
+            "MESS" -> if (hour in 8..9 || hour in 12..13 || hour in 19..21) 1.00 else 0.25
+            "SFC"  -> if (hour in 11..14 || hour in 17..20) 0.80 else 0.20
+            "MCFE" -> if (hour in 11..14 || hour in 17..20) 0.70 else 0.20
+            "IIITS"-> if (hour in 18..22) 0.60 else 0.15
+            "SMRKT"-> if (hour in 18..21) 0.45 else 0.12
+            else   -> 0.25
+        }
+        val noise = kotlin.random.Random.nextDouble(-vol, vol)
+        val demandImpact = (buyVolume - sellVolume) * 0.001
+        val socialImpact = momentum.coerceIn(-5.0, 5.0) * 0.02 // scale
+        val next = maxOf(1.0, current + noise + demandImpact + socialImpact)
+        return kotlin.math.round(next * 100.0) / 100.0
+    }
+
+
+    // In StocksRepository.kt
+
+    suspend fun onStockComment(stockId: String, sentiment: Int = 1) {
+        // sentiment: +1 default; you can pass -1 for negative
+        stocksCol.document(stockId).update("socialMomentum", FieldValue.increment(0.5 * sentiment)).await()
+    }
+
+    suspend fun onStockLike(stockId: String) {
+        stocksCol.document(stockId).update("socialMomentum", FieldValue.increment(0.2)).await()
+    }
+
+    suspend fun onStockDislike(stockId: String) {
+        stocksCol.document(stockId).update("socialMomentum", FieldValue.increment(-0.2)).await()
+    }
+
+
+    data class PortfolioLine(
+        val symbol: String,
+        val name: String,
+        val qty: Long,
+        val avgPrice: Double,
+        val currentPrice: Double,
+        val invested: Double,
+        val currentValue: Double,
+        val pnl: Double
+    )
+
+    suspend fun seedLastWeekAndDistributeToUsers(userUids: List<String>) {
+        require(userUids.size == 5) { "Provide exactly 5 user UIDs" }
+
+        val zone = java.time.ZoneId.systemDefault()
+        val today = java.time.LocalDate.now()
+        val stocksSnap = db.collection("stocks").get().await()
+
+        for (stockDoc in stocksSnap.documents) {
+            val stockId = stockDoc.id
+            val symbol = stockDoc.getString("symbol") ?: continue
+            val name = stockDoc.getString("name") ?: symbol
+
+            val totalSupply = (stockDoc.getLong("totalSupply") ?: 0L)
+            val currentAvailable = (stockDoc.getLong("availableSupply") ?: totalSupply)
+
+            // Start from current price if present, else a sane default
+            var base = stockDoc.getDouble("price") ?: 10.0
+
+            // Build a new independent map for THIS stock
+            val lwhForStock = mutableMapOf<String, List<Map<String, Any>>>()
+
+            // Generate last 6 full days (keep today empty; runtime engine will fill today)
+            for (d in 6 downTo 1) {
+                val date = today.minusDays(d.toLong())
+                val points = mutableListOf<Map<String, Any>>()
+                var price = base
+                for (h in 5..22) {
+                    for (m in listOf(0, 15, 30, 45)) {
+                        price = calcSeedPrice(symbol, h, price)
+                        val ts = date.atTime(h, m).atZone(zone).toInstant().toEpochMilli()
+                        points.add(mapOf("ts" to ts, "price" to price))
+                    }
+                }
+                lwhForStock[date.toString()] = points.toList() // copy
+                base = points.last()["price"] as Double
+            }
+
+            // Write lastWeekHistory and reset today's history for THIS stock
+            val stockRef = db.collection("stocks").document(stockId)
+            stockRef.update(
+                mapOf(
+                    "lastWeekHistory" to lwhForStock,
+                    "priceHistory" to emptyList<Map<String, Any>>(),
+                    "price" to base,
+                    "updatedAt" to com.google.firebase.Timestamp.now()
+                )
+            ).await()
+
+            // Distribute available supply to 5 users
+            if (currentAvailable > 0) {
+                val parts = splitSupplyAcrossFive(currentAvailable)
+
+                val batch = db.batch()
+                var investorsAdded = 0L
+                parts.forEachIndexed { idx, qty ->
+                    if (qty <= 0L) return@forEachIndexed
+                    val uid = userUids[idx]
+                    val userRef = db.collection("users").document(uid)
+                    val holdingRef = userRef.collection("holdings").document(stockId)
+
+                    val avgSeedPrice = base // simple choice; or average of last day points
+
+                    batch.set(
+                        holdingRef,
+                        mapOf(
+                            "stockId" to stockId,
+                            "qty" to qty,
+                            "avgPrice" to avgSeedPrice
+                        )
+                    )
+                    investorsAdded += 1
+                }
+
+                val consumed = parts.sum()
+                batch.update(stockRef, "availableSupply", (currentAvailable - consumed).coerceAtLeast(0L))
+                if (investorsAdded > 0) {
+                    batch.update(stockRef, "investorsCount", com.google.firebase.firestore.FieldValue.increment(investorsAdded))
+                }
+                batch.commit().await()
+            }
+        }
+    }
+    private fun splitSupplyAcrossFive(available: Long): List<Long> {
+        if (available <= 0L) return listOf(0,0,0,0,0)
+        val weights = List(5) { kotlin.random.Random.nextDouble(0.5, 1.5) }
+        val sum = weights.sum()
+        val raw = weights.map { (it / sum) * available }
+        val rounded = raw.map { it.toLong() }.toMutableList()
+        var diff = available - rounded.sum()
+        var i = 0
+        while (diff > 0) { rounded[i % 5] += 1; diff--; i++ }
+        return rounded
+    }
+
+    private fun calcSeedPrice(symbol: String, hour: Int, current: Double): Double {
+        val vol = when (symbol.uppercase()) {
+            "MESS" -> if (hour in 8..9 || hour in 12..13 || hour in 19..21) 1.00 else 0.25
+            "SFC", "MCFE" -> if (hour in 11..14 || hour in 17..20) 0.70 else 0.20
+            "IIITS"-> if (hour in 18..22) 0.60 else 0.15
+            "SMRKT"-> if (hour in 18..21) 0.45 else 0.12
+            else   -> 0.25
+        }
+        val noise = kotlin.random.Random.nextDouble(-vol, vol)
+        val drift = when (symbol.uppercase()) {
+            "MESS" -> if (hour in 12..13) 0.10 else 0.0
+            "SFC", "MCFE" -> if (hour in 18..20) 0.08 else 0.0
+            else -> 0.0
+        }
+        val next = kotlin.math.max(1.0, current + noise + drift)
+        return kotlin.math.round(next * 100.0) / 100.0
+    }
+
+    // Read a user's portfolio lines with P/L
+    suspend fun getUserPortfolio(uid: String): List<PortfolioLine> {
+        val userRef = db.collection("users").document(uid)
+        val holdings = userRef.collection("holdings").get().await().documents
+        val lines = mutableListOf<PortfolioLine>()
+        for (h in holdings) {
+            val stockId = h.getString("stockId") ?: continue
+            val qty = h.getLong("qty") ?: 0L
+            val avgPrice = h.getDouble("avgPrice") ?: 0.0
+            val stock = db.collection("stocks").document(stockId).get().await()
+            val symbol = stock.getString("symbol") ?: stockId
+            val name = stock.getString("name") ?: symbol
+            val currentPrice = stock.getDouble("price") ?: avgPrice
+            val invested = avgPrice * qty
+            val currentValue = currentPrice * qty
+            val pnl = currentValue - invested
+            lines.add(
+                PortfolioLine(symbol, name, qty, avgPrice, currentPrice, invested, currentValue, pnl)
+            )
+        }
+        return lines.sortedByDescending { it.currentValue }
     }
 
 
