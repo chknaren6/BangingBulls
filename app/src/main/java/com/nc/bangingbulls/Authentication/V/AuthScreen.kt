@@ -152,7 +152,7 @@ fun AuthScreen(navController: NavController) {
                             )
                         ) {
                             Text(
-                                text = "Sign In ;)",
+                                text = "Sign In ",
                                 fontSize = 22.sp,
                                 color= Color.Black,
                                 fontWeight = FontWeight.Medium,

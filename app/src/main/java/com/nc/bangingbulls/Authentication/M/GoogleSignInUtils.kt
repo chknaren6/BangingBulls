@@ -90,7 +90,6 @@ class GoogleSignInUtils {
             return GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
                 .setAutoSelectEnabled(false)
-                .setServerClientId("HERE SHOULD BE YOUR SERVER CLIENT ID")
                 .build()
         }
 
