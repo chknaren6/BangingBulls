@@ -24,8 +24,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.firebase.auth.FirebaseAuth
-import com.nc.bangingbulls.Authentication.FastCircularProgressIndicator
-import com.nc.bangingbulls.Home.Stocks.Leaderboard.LeaderboardWorker
+import com.nc.bangingbulls.Authentication.V.FastCircularProgressIndicator
+import com.nc.bangingbulls.Home.Stocks.Leaderboard.M.LeaderboardWorker
 import java.util.concurrent.TimeUnit
 
 @Composable

@@ -34,16 +34,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.nc.bangingbulls.Authentication.AuthViewModel
-import com.nc.bangingbulls.Home.Game.CoinFlipGameScreen
-import com.nc.bangingbulls.Home.Game.CrashGameScreen
-import com.nc.bangingbulls.Home.Game.DiceGameScreen
-import com.nc.bangingbulls.Home.Game.GameScreen
-import com.nc.bangingbulls.Home.Game.LimboGameScreen
-import com.nc.bangingbulls.Home.Stocks.StockFiles.AdminStockScreen
-import com.nc.bangingbulls.Home.Stocks.StockFiles.StockDetailScreen
-import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksScreen
-import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksViewModel
+import com.nc.bangingbulls.Authentication.VM.AuthViewModel
+import com.nc.bangingbulls.Home.Game.V.CoinFlipGameScreen
+import com.nc.bangingbulls.Home.Game.V.CrashGameScreen
+import com.nc.bangingbulls.Home.Game.V.DiceGameScreen
+import com.nc.bangingbulls.Home.Game.V.GameScreen
+import com.nc.bangingbulls.Home.Game.V.LimboGameScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.V.AdminStockScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.V.StockDetailScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.V.StocksScreen
+import com.nc.bangingbulls.Home.Stocks.StockFiles.VM.StocksViewModel
 import kotlinx.coroutines.launch
 
 @SuppressLint("ViewModelConstructorInComposable")

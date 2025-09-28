@@ -8,10 +8,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.composable
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.nc.bangingbulls.Authentication.AuthScreen
-import com.nc.bangingbulls.Authentication.AuthViewModel
-import com.nc.bangingbulls.Authentication.AuthViewModelFactory
-import com.nc.bangingbulls.Authentication.UsernameInputScreen
+import com.nc.bangingbulls.Authentication.V.AuthScreen
+import com.nc.bangingbulls.Authentication.VM.AuthViewModel
+import com.nc.bangingbulls.Authentication.VM.AuthViewModelFactory
+import com.nc.bangingbulls.Authentication.V.UsernameInputScreen
 import com.nc.bangingbulls.Home.HomeScreen
 import com.nc.bangingbulls.Home.UserViewModel
 import com.nc.bangingbulls.Splash.SplashScreen

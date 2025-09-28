@@ -34,11 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.nc.bangingbulls.Authentication.AuthViewModel
-import com.nc.bangingbulls.Home.Stocks.Leaderboard.LeaderboardScreen
-import com.nc.bangingbulls.Home.Stocks.Leaderboard.LeaderboardViewModel
-import com.nc.bangingbulls.Home.Stocks.StockFiles.PortfolioItem
-import com.nc.bangingbulls.Home.Stocks.StockFiles.StocksViewModel
+import com.nc.bangingbulls.Authentication.VM.AuthViewModel
+import com.nc.bangingbulls.Home.Stocks.Leaderboard.V.LeaderboardScreen
+import com.nc.bangingbulls.Home.Stocks.Leaderboard.VM.LeaderboardViewModel
+import com.nc.bangingbulls.Home.Stocks.StockFiles.M.PortfolioItem
+import com.nc.bangingbulls.Home.Stocks.StockFiles.VM.StocksViewModel
 
 @Composable
 fun HomeScreenContent(

@@ -24,9 +24,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nc.bangingbulls.Home.Stocks.StockFiles.UserPortfolioViewModel
-import com.nc.bangingbulls.Home.Stocks.StockFiles.addOrIncreaseHolding
-import com.nc.bangingbulls.Home.Stocks.StockFiles.deleteHolding
+import com.nc.bangingbulls.Home.Stocks.StockFiles.VM.UserPortfolioViewModel
+import com.nc.bangingbulls.Home.Stocks.StockFiles.M.addOrIncreaseHolding
+import com.nc.bangingbulls.Home.Stocks.StockFiles.M.deleteHolding
 import kotlinx.coroutines.launch
 
 @Composable
