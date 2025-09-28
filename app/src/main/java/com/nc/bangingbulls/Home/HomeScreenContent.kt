@@ -43,7 +43,7 @@ import com.nc.bangingbulls.Home.Stocks.StockFiles.VM.StocksViewModel
 @Composable
 fun HomeScreenContent(
     userViewModel: UserViewModel,
-    authViewModel: AuthViewModel,
+    authViewModel: AuthViewModel?,
     navController: NavController,
     navControllerHome: NavController,
     stocksViewModel: StocksViewModel

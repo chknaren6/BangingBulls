@@ -65,9 +65,6 @@ class StocksViewModel(
             }
         }
 */
-    fun addComment(stockId: String, comment: Comment) = viewModelScope.launch {
-        repo.addComment(stockId, comment)
-    }
 
 
     private val _comments = MutableStateFlow<List<Comment>>(emptyList())
