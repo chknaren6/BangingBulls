@@ -20,6 +20,9 @@
         android:roundIcon="@drawable/bull"
         android:supportsRtl="true"
         android:theme="@style/Theme.BangingBulls">
+        <meta-data
+            android:name="com.google.android.geo.1027840785835-rhi2osfheleg3iqglj80vdb1iragq4eu.apps.googleusercontent.com"
+            android:value="1027840785835-rhi2osfheleg3iqglj80vdb1iragq4eu.apps.googleusercontent.com" />
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"

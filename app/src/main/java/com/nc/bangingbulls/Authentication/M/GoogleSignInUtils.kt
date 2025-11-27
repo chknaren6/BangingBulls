@@ -66,7 +66,7 @@ class GoogleSignInUtils {
 
                         }
                     }
-                } catch (e: NoCredentialException) {
+               /* } catch (e: NoCredentialException) {
                     scope.launch(Dispatchers.Main) {
                         Toast.makeText(
                             context,
@@ -77,7 +77,17 @@ class GoogleSignInUtils {
                     launcher?.launch(getIntent())
                 } catch (e: GetCredentialException) {
                     e.printStackTrace()
+                }*/
+                } catch (e: NoCredentialException) {
+                    // Don’t open Settings. Log and show a hint; then fallback to One Tap client or retry with filter false.
+                    scope.launch(Dispatchers.Main) {
+                        Toast.makeText(context, "No credentials available. Check client ID/SHAs.", Toast.LENGTH_LONG).show()
+                    }
+                    // Optional fallback: One Tap via Identity (beginSignIn)
+                } catch (e: GetCredentialException) {
+                    e.printStackTrace()
                 }
+
             }
         }
 
@@ -90,7 +100,7 @@ class GoogleSignInUtils {
             return GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
                 .setAutoSelectEnabled(false)
-                .setServerClientId("1027840785835-rhi2osfheleg3iqglj80vdb1iragq4eu.apps.googleusercontent.com")
+                .setServerClientId("")
                 .build()
         }
 
