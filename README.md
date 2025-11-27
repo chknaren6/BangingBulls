@@ -89,6 +89,8 @@ Example gallery:
 ### Video
 
 - **Demo Video**: [Docs/demo.mp4](Docs/demo.mp4)
+  or
+- https://drive.google.com/file/d/1TFfO-gss1B_UdWEuZOnOoBllDO97xekk/view?usp=sharing
 
 ---
 
