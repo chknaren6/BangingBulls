@@ -57,7 +57,6 @@ Head to the Releases section and download the latest signed build:
 
 ### Images
 
-Place the demo images in the repo under `Docs/Images/` with the following filenames:
 
 | Screen              | Image path                      |
 |---------------------|---------------------------------|
@@ -73,17 +72,21 @@ Place the demo images in the repo under `Docs/Images/` with the following filena
 
 Example gallery:
 
-![Auth](Docs/Images/auth.jpeg)  
-![Home](Docs/Images/home_screen.jpeg)  
-![Game — Rocket](Docs/Images/rocket_game.jpeg)  
-![Game — Dice](Docs/Images/dice_roll.jpeg)  
-![Game — Coin Flip](Docs/Images/coin_flip.jpeg)  
-![Stocks — List](Docs/Images/stocks_list.jpeg)  
-![Stocks — Detail](Docs/Images/stocks_detail.jpeg)  
+<p align="center">
+  <img src="Docs/Images/auth.jpeg" width="22%">
+  <img src="Docs/Images/username.jpeg" width="22%">
+  <img src="Docs/Images/home.jpeg" width="22%">
+  <img src="Docs/Images/stocks_list.jpeg" width="22%">
+</p>
+
+<p align="center">
+  <img src="Docs/Images/stocks_detail.jpeg" width="22%">
+  <img src="Docs/Images/game_dice.jpeg" width="22%">
+  <img src="Docs/Images/game_crash.jpeg" width="22%">
+  <img src="Docs/Images/rocket_game.jpeg" width="22%">
+</p> 
 
 ### Video
-
-Place the demo video under `Docs/demo.mp4` and reference it from the README:
 
 - **Demo Video**: [Docs/demo.mp4](Docs/demo.mp4)
 
